@@ -1,4 +1,4 @@
-const { pool } = require("../db");
+const { pool } = require("../../db");
 
 const deleteEligibilityTemplate = async (req, res) => {
   try {

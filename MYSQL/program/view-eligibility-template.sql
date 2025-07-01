@@ -9,22 +9,19 @@ BEGIN
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
-         SELECT COALESCE(custom_error, 'error occured while fetching template') AS error;
+         SELECT COALESCE(custom_error, 'error occured while fetching template') AS message;
     END;
 
     -- Check if template exists
-    SELECT COUNT(*) INTO template_exists 
+    IF  NOT EXISTS(SELECT 1
     FROM dt_eligibility_templates 
-    WHERE TID = template_id;
-    
-    IF template_exists = 0 THEN
+    WHERE TID = template_id) THEN
         SET custom_error = 'Template not found';
         SIGNAL SQLSTATE '45000';
-    ELSE
+   END IF;
         -- Start transaction (for atomic operation)
         START TRANSACTION;
         
-        -- Return template with questions as JSON array
         SELECT JSON_OBJECT(
             'template_id', et.TID,
             'template_name', et.name,
@@ -46,8 +43,7 @@ BEGIN
         WHERE et.TID = template_id;
         
         COMMIT;
-    END IF;
 END $$
 DELIMITER ;
 
-call view_eligibility_template(17);
+call view_eligibility_template(11,1);

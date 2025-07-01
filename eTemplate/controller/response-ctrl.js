@@ -1,4 +1,4 @@
-const { pool } = require('../db');
+const { pool } = require('../../db');
 
 const submitEligibilityResponse = async (req, res) => {
   try {
@@ -44,3 +44,7 @@ const submitEligibilityResponse = async (req, res) => {
 };
 
 module.exports = submitEligibilityResponse;
+
+
+
+'{\"questions\": [{\"question\": \"Do you have 3+ years of professional software development experience?\", \"deciding_answer\": \"yes\", \"sequence_number\": 1}, {\"question\": \"Are you proficient in Python or Java?\", \"deciding_answer\": \"yes\", \"sequence_number\": 2}, {\"question\": \"Have you worked with cloud platforms (AWS/Azure/GCP)?\", \"deciding_answer\": \"yes\", \"sequence_number\": 3}, {\"question\": \"Can you demonstrate experience with CI/CD pipelines?\", \"deciding_answer\": \"no\", \"sequence_number\": 4}], \"template_id\": 11, \"template_name\": \"Data Engineer Eligibility 2025\"}'

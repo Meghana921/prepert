@@ -1,4 +1,4 @@
-const { pool } = require("../db");
+const { pool } = require("../../db");
 
 const viewEligibilityTemplate = async (req, res) => {
   try {
@@ -24,15 +24,17 @@ const viewEligibilityTemplate = async (req, res) => {
     if (result[0] && result[0][0] && result[0][0].eligibility_template) {
 
       return res.status(200).json({
-        message: "Template retrieved successfully",
-        template_data:result[0][0].eligibility_template
+        data:result[0][0].eligibility_template,
+        status:true,
+        message: "Template retrieved successfully"
+        
       });
     }
-
-    // If no data found but no error returned
+   else {
     return res.status(404).json({
-      error: "Template not found",
-    });
+      status : false,
+      message: "Template not found",
+    });}
 
   } catch (error) {
     return res.status(500).json({

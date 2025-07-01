@@ -1,18 +1,19 @@
-const { pool } = require("../db");
+const { pool } = require("../../db");
 
-const addEligibilityTemplate = async (req, res) => {
+const updateEligibilityTemplate = async (req, res) => {
   try {
-    const { creator_id, template_name, eligibility_questions } = req.body;
+    const { template_id, template_name, eligibility_questions } = req.body;
 
-    if (!creator_id || !template_name || !eligibility_questions) {
+    if (!template_id || !template_name || !eligibility_questions) {
       return res.status(400).json({
+        status:false,
         error: "Missing required fields",
       });
     }
 
     const [result] = await pool.query(
-      "CALL save_eligibility_template(?, ?, ?)",
-      [creator_id, template_name, JSON.stringify(eligibility_questions)]
+      "CALL update_eligibility_template(?, ?, ?)",
+      [template_id, template_name, JSON.stringify(eligibility_questions)]
     );
 
     if (
@@ -31,12 +32,11 @@ const addEligibilityTemplate = async (req, res) => {
       result[0][0].template_id
     ) {
       return res.status(201).json({
-        template_id: result[0][0].template_id,
-        template_name: result[0][0].template_name,
+        data:result,
+        message: "Template updated successfully"
       });
     }
   } catch (error) {
-    console.error("Error in addEligibilityTemplate:", error);
     return res.status(500).json({
       error: "Internal server error",
       details: error.message,
@@ -44,4 +44,4 @@ const addEligibilityTemplate = async (req, res) => {
   }
 };
 
-module.exports = addEligibilityTemplate;
+module.exports = updateEligibilityTemplate;

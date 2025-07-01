@@ -1,11 +1,11 @@
 const express = require('express');
 const eligibilityTemplateRouter = express.Router();
-const addEligibilityTemplate = require('./add-ctrl');
-const listEligibilityTemplates = require('./list-template-ctrl');
-const deleteEligibilityTemplate = require('./delete-ctrl');
-const updateEligibilityTemplate = require('./update-ctrl');
-const viewEligibilityTemplate= require("./view-ctrl");
-const submitEligibilityResponse= require("./response-ctrl");
+const addEligibilityTemplate = require('./controller/add-ctrl');
+const listEligibilityTemplates = require('./controller/list-ctrl');
+const deleteEligibilityTemplate = require('./controller/delete-ctrl');
+const updateEligibilityTemplate = require('./controller/update-ctrl');
+const viewEligibilityTemplate= require("./controller/view-ctrl");
+const submitEligibilityResponse= require("./controller/response-ctrl");
 
 eligibilityTemplateRouter.post('/add-eligibility-template',addEligibilityTemplate);
 eligibilityTemplateRouter.get('/list-eligibility-template',listEligibilityTemplates);

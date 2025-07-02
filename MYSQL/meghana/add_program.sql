@@ -30,13 +30,10 @@ DECLARE existing_tid BIGINT;
 DECLARE EXIT HANDLER FOR SQLEXCEPTION BEGIN ROLLBACK;
 
 SELECT
-    JSON_OBJECT (
-        'error',
         COALESCE(
             custom_error,
             'An error occurred during program creation'
-        )
-    ) AS result;
+        )as message;
 
 END;
 
@@ -54,7 +51,7 @@ IF existing_tid IS NOT NULL THEN
 SET
     custom_error = CONCAT (
         in_title,
-        ' program already exists. You can view and edit program ID: ',
+        ' Program already exists. You can view and edit program ID: ',
         existing_tid
     );
 
@@ -145,7 +142,7 @@ SELECT
         learning_program_id,
         'program_name',
         in_title
-    ) AS result;
+    ) AS data;
 
 COMMIT;
 

@@ -21,7 +21,7 @@ const add_program = async (req, res) => {
       regret_message:in_regret_message,
       eligibility_template_id:in_eligibility_template_id,
       invite_template_id:in_invite_template_id,
-      invitee:in_invitee,
+      invitees:in_invitees,
     } = req.body;
 
     const [result] = await pool.query(
@@ -45,7 +45,7 @@ const add_program = async (req, res) => {
         in_regret_message || null,
         in_eligibility_template_id || null,
         in_invite_template_id || null,
-        JSON.stringify(in_invitee) || null
+        JSON.stringify(in_invitees) || null
       ]
     );
 
@@ -55,7 +55,7 @@ const add_program = async (req, res) => {
     }
 
 
-    res.status(201).json({ data: result[0][0], status: true, message: "Program created successfully!" });
+    res.status(201).json({ data: result[0][0].data, status: true, message: "Program created successfully!" });
   } catch (error) {
     console.error('Error creating program:', error);
     res.status(500).json({

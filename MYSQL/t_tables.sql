@@ -1,3 +1,4 @@
+DROP DATABASE IF EXISTS prepertdevdb;
 CREATE DATABASE prepertdevdb;
 USE prepertdevdb;
 -- ============================================================================

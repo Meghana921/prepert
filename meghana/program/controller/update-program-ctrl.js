@@ -3,28 +3,29 @@ const { pool } = require("../../../db");
 const updateLearningProgram = async (req, res) => {
   try {
     const {
-      in_program_id,
-      in_title,
-      in_description,
-      in_creator_id,
-      in_difficulty_level,
-      in_image_path,
-      in_price,
-      in_access_period_months,
-      in_available_slots,
-      in_campus_hiring,
-      in_sponsored,
-      in_minimum_score,
-      in_experience_from,
-      in_experience_to,
-      in_locations,
-      in_employer_name,
-      in_regret_message,
-      in_eligibility_template_id,
-      in_invite_template_id
+      program_id:in_program_id,
+      title:in_title,
+      description:in_description,
+      creator_id:in_creator_id,
+      difficulty_level:in_difficulty_level,
+      image_path:in_image_path,
+      price:in_price,
+      access_period_months:in_access_period_months,
+      available_slots:in_available_slots,
+      campus_hiring:in_campus_hiring,
+      sponsored:in_sponsored,
+      minimum_score:in_minimum_score,
+      experience_from:in_experience_from,
+      experience_to:in_experience_to,
+      locations:in_locations,
+      employer_name:in_employer_name,
+      regret_message:in_regret_message,
+      eligibility_template_id:in_eligibility_template_id,
+      invite_template_id:in_invite_template_id,
+      invitees:in_invitees,
     } = req.body;
 
-    // Validate required fields
+    
     if (!in_program_id || !in_creator_id) {
       return res.status(400).json({
         error: "program_id and creator_id are required"
@@ -32,7 +33,7 @@ const updateLearningProgram = async (req, res) => {
     }
 
     const [result] = await pool.query(
-      "CALL update_learning_program(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "CALL update_learning_program(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)",
       [
         in_program_id,
         in_title || null,
@@ -52,33 +53,24 @@ const updateLearningProgram = async (req, res) => {
         in_employer_name || null,
         in_regret_message || null,
         in_eligibility_template_id || null,
-        in_invite_template_id || null
+        in_invite_template_id|| null,
+        JSON.stringify(in_invitees) || null
       ]
     );
 
-    // Handle stored procedure response
-    if (!result || !result[0] || !result[0][0]) {
-      return res.status(500).json({
-        error: "No response from database"
-      });
+    
+
+    if (result[0]?.[0]?.message) {
+      return res.status(400).json({ error: result[0][0] });
     }
 
-    const procedureResult = result[0][0];
-    console.log(procedureResult);
-    if (procedureResult.error) {
-      return res.status(404).json({
-        error: procedureResult.error
-      });
-    }
 
-    // Return the complete response from the procedure
-    return res.status(200).json(procedureResult.data || procedureResult);
-
+    res.status(201).json({ data: result[0][0].data, status: true, message: "Program updated successfully!" });
   } catch (error) {
-    console.error("Error updating program:", error);
-    return res.status(500).json({
-      error: "Internal server error",
-      details: process.env.NODE_ENV === "development" ? error.message : undefined
+    console.error('Error creating program:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      details: error.message
     });
   }
 };

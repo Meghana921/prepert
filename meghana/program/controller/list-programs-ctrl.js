@@ -7,10 +7,11 @@ const view_created_programs = async (req, res) => {
       creator_id,
     ]);
     const program_list = result[0];
-    res.status(200).json(program_list);
+    res.status(200).json({data:program_list,status:true,message:"Programs fetched succesfully"});
   } catch (error) {
     return res.status(500).json({
-      error_message: "Failed to fetch program due to a server error.",
+      status:false,
+      message: "Failed to fetch program due to a server error.",
       details: error.message,
     });
   }

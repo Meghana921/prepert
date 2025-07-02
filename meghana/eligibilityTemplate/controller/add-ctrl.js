@@ -19,7 +19,6 @@ const addEligibilityTemplate = async (req, res) => {
       "CALL add_eligibility_template(?, ?, ?)",
       [in_creator_id, in_template_name, JSON.stringify(in_eligibility_questions)]
     );
-    console.log([result[0][0].message]);
     if (result[0] && result[0][0] && result[0][0].message) {
       return res
         .status(409)
@@ -43,3 +42,5 @@ const addEligibilityTemplate = async (req, res) => {
 };
 
 module.exports = addEligibilityTemplate;
+
+

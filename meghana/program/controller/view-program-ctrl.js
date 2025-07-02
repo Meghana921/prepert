@@ -4,53 +4,58 @@ const view_program = async (req, res) => {
   try {
     const { creator_id, program_id } = req.body;
 
-    
     if (!creator_id || !program_id) {
       return res.status(400).json({
-        error: "Both creator_id and program_id are required in the request body"
+        status: false,
+        error: "Both creator_id and program_id are required"
       });
     }
 
-  
     const [result] = await pool.query("CALL view_program(?, ?)", [
       creator_id,
       program_id
     ]);
 
-   
-    if (result[0] && result[0][0] && result[0][0].error) {
+    // Handle error message from stored procedure
+    if (result[0]?.[0]?.message) {
       return res.status(404).json({
-        error: result[0][0].error
+        status: false,
+        error: result[0][0].message
       });
     }
 
-    
-    if (!result[0] || result[0].length === 0) {
-      return res.status(404).json({
-        error: "Program not found"
+    // Handle successful response
+    if (result[0]?.[0]?.data) {
+      const programData = typeof result[0][0].data === 'string' 
+        ? JSON.parse(result[0][0].data) 
+        : result[0][0].data;
+      
+      return res.status(200).json({
+        status: true,
+        data: programData,
+        message: "Program retrieved successfully"
       });
     }
 
-    
-    const programData = result[0][0].program_data;
 
-    const responseData = typeof programData === 'string'
-      ? JSON.parse(programData)
-      : programData;
-
-    return res.status(200).json(responseData);
+    return res.status(404).json({
+      status: false,
+      error: "Program not found"
+    });
 
   } catch (error) {
     console.error('Error viewing program:', error);
 
-   
+ 
     if (error.code === '45000') {
-      return res.status(403).json({
-        error: error.message
+      return res.status(404).json({
+        status: false,
+        error: "Program not found"
       });
     }
 
     return res.status(500).json({
+      status: false,
       error: "Internal server error",
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });

@@ -3,55 +3,55 @@ const { pool } = require("../../../db");
 const add_program = async (req, res) => {
   try {
     const {
-      in_title,
-      description,
-      creator_id,
-      difficulty_level,
-      image_path,
-      price,
-      access_period_months,
-      available_slots,
-      campus_hiring,
-      sponsored,
-      minimum_score,
-      experience_from,
-      experience_to,
-      locations,
-      employer_name,
-      regret_message,
-      eligibility_template_id,
-      invite_template_id,
-      invitee,
+      title:in_title,
+      description:in_description,
+      creator_id:in_creator_id,
+      difficulty_level:in_difficulty_level,
+      image_path:in_image_path,
+      price:in_price,
+      access_period_months:in_access_period_months,
+      available_slots:in_available_slots,
+      campus_hiring:in_campus_hiring,
+      sponsored:in_sponsored,
+      minimum_score:in_minimum_score,
+      experience_from:in_experience_from,
+      experience_to:in_experience_to,
+      locations:in_locations,
+      employer_name:in_employer_name,
+      regret_message:in_regret_message,
+      eligibility_template_id:in_eligibility_template_id,
+      invite_template_id:in_invite_template_id,
+      invitee:in_invitee,
     } = req.body;
 
     const [result] = await pool.query(
       `CALL add_learning_program(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)`,
       [
         in_title,
-        description,
-        creator_id,
-        difficulty_level,
-        image_path || null,
-        price || null,
-        access_period_months || null,
-        available_slots || null,
-        campus_hiring || false,
-        sponsored || false,
-        minimum_score || null,
-        experience_from || null,
-        experience_to || null,
-        locations || null,
-        employer_name || null,
-        regret_message || null,
-        eligibility_template_id || null,
-        invite_template_id || null,
-        JSON.stringify(invitee) || null
+        in_description,
+        in_creator_id,
+        in_difficulty_level,
+        in_image_path || null,
+        in_price || null,
+        in_access_period_months || null,
+        in_available_slots || null,
+        in_campus_hiring || false,
+        in_sponsored || false,
+        in_minimum_score || null,
+        in_experience_from || null,
+        in_experience_to || null,
+        in_locations || null,
+        in_employer_name || null,
+        in_regret_message || null,
+        in_eligibility_template_id || null,
+        in_invite_template_id || null,
+        JSON.stringify(in_invitee) || null
       ]
     );
 
 
-    if (result[0] && result[0][0] && result[0][0].error) {
-      return res.status(400).json({ error: result[0][0].error });
+    if (result[0]?.[0]?.message) {
+      return res.status(400).json({ error: result[0][0] });
     }
 
 

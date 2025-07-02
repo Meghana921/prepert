@@ -29,10 +29,11 @@ const updateEligibilityTemplate = async (req, res) => {
     if (
       result[0] &&
       result[0][0] &&
-      result[0][0].template_id
+      result[0][0].data
     ) {
       return res.status(201).json({
-        data: result,
+        data: result[0][0],
+        status:true,
         message: "Template updated successfully"
       });
     }

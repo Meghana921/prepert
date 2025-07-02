@@ -7,7 +7,7 @@ const enrollment = require("./controller/enrollment-ctrl");
 const updateLearningProgram = require("./controller/update-program-ctrl");
 
 program_router.post("/create-program", add_program);
-program_router.get("/view-created-programs", view_created_programs);
+program_router.get("/list-programs", view_created_programs);
 program_router.get("/view-program", view_program);
 program_router.post("/program-enrollment", enrollment);
 program_router.post("/update-program", updateLearningProgram);

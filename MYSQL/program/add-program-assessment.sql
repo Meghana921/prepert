@@ -1,6 +1,7 @@
 DROP PROCEDURE IF EXISTS add_learning_assessment;
 
-DELIMITER / / CREATE PROCEDURE add_learning_assessment (
+DELIMITER //
+CREATE PROCEDURE add_learning_assessment (
     IN in_program_id BIGINT UNSIGNED,
     IN in_title VARCHAR(100),
     IN in_description TEXT,
@@ -129,7 +130,8 @@ SELECT
 
 COMMIT;
 
-END / / DELIMITER;
+END //
+DELIMITER ;
 
 CALL add_learning_assessment (
     1, -- in_program_id (must exist in dt_learning_programs)

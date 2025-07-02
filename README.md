@@ -3,6 +3,7 @@ prepert backend node application
 
 Project Strucutre
 
+```
 prepert-backend/
 ├── src/
 │   ├── config/          # Configuration (DB, environment, constants)
@@ -27,7 +28,7 @@ prepert-backend/
 │   ├── utils/           # Helper functions, custom error classes
 │   │   ├── logger.js
 │   │   └── ApiError.js
-│   ├── app.js           # Express app config
+│   ├── app.js           # Express/Fastify app config
 │   └── server.js        # Entry point
 ├── .env                 # Environment variables
 ├── .gitignore
@@ -35,3 +36,4 @@ prepert-backend/
 ├── README.md
 └── sql/                 # DB schema scripts
     ├── init.sql
+```

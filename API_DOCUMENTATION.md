@@ -1,410 +1,535 @@
-# LMS Learning Backend API Documentation
+# Learning Module API Documentation
 
-This document describes all API endpoints available in the backend. Use these details to test with Postman or similar tools.
+**Base URL:** `/api/learning`
 
 ---
 
-## Health Check
+## Programs
 
-**GET** `/health`
+| Method | Endpoint                | Description                        | Controller Function         |
+|--------|-------------------------|------------------------------------|----------------------------|
+| POST   | `/programs/create-program`      | Create a new program                | addProgramController       |
+| GET    | `/programs/list-programs`       | List all created programs           | listProgramsController     |
+| GET    | `/programs/view-program`        | View a specific program             | viewProgramController      |
+| POST   | `/programs/program-enrollment`  | Enroll in a program                 | enrollmentController       |
+| POST   | `/programs/update-program`      | Update a program                    | updateProgramController    |
 
-**Description:** Check if the server is running.
+### Examples
 
+#### POST `/programs/create-program`
+**Request Body:**
+```json
+{
+  "title": "JavaScript Bootcamp",
+  "description": "Learn JS from scratch",
+  "creator_id": 1,
+  "difficulty_level": "Beginner",
+  "price": 100,
+  "access_period_months": 6
+}
+```
 **Response:**
 ```json
-{ "status": "ok" }
+{
+  "success": true,
+  "program_id": 123
+}
+```
+
+#### GET `/programs/list-programs`
+**Response:**
+```json
+[
+  {
+    "program_id": 123,
+    "title": "JavaScript Bootcamp",
+    "creator_id": 1
+  },
+  {
+    "program_id": 124,
+    "title": "Python Basics",
+    "creator_id": 2
+  }
+]
+```
+
+#### GET `/programs/view-program?program_id=123`
+**Response:**
+```json
+{
+  "program_id": 123,
+  "title": "JavaScript Bootcamp",
+  "description": "Learn JS from scratch",
+  "creator_id": 1,
+  "difficulty_level": "Beginner",
+  "price": 100,
+  "access_period_months": 6
+}
+```
+
+#### POST `/programs/program-enrollment`
+**Request Body:**
+```json
+{
+  "user_id": 10,
+  "program_id": 123
+}
+```
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Enrolled successfully"
+}
+```
+
+#### POST `/programs/update-program`
+**Request Body:**
+```json
+{
+  "program_id": 123,
+  "title": "Advanced JS Bootcamp"
+}
+```
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Program updated"
+}
 ```
 
 ---
 
-## Add Course Content
+## Eligibility Templates
 
-**POST** `/api/course-content`
+| Method | Endpoint                        | Description                        | Controller Function                |
+|--------|---------------------------------|------------------------------------|------------------------------------|
+| POST   | `/eligibility/add-eligibility-template`    | Add a new eligibility template     | addEligibilityController           |
+| GET    | `/eligibility/list-eligibility-template`   | List all eligibility templates     | listEligibilityController          |
+| POST   | `/eligibility/update-eligibility-template` | Update an eligibility template     | updateEligibilityController        |
+| GET    | `/eligibility/view-eligibility-template`   | View an eligibility template       | viewEligibilityController          |
+| POST   | `/eligibility/submit-eligibility-response` | Submit eligibility response        | eligibilityResponseController      |
 
-**Description:** Add a new module and its topics to a learning program.
+### Examples
 
-**Request Body (JSON):**
+#### POST `/eligibility/add-eligibility-template`
+**Request Body:**
 ```json
 {
-  "learning_program_tid": 3001,
-  "module_title": "Triggers in SQL",
-  "module_description": "Learn about MySQL triggers.",
-  "module_sequence": 1,
-  "topics": [
-    {
-      "title": "Before Insert Trigger",
-      "description": "Before insert logic",
-      "content": "CREATE TRIGGER ...",
-      "sequence_number": 1,
-      "progress_weight": 1
-    },
-    {
-      "title": "After Delete Trigger",
-      "description": "After delete logic",
-      "content": "AFTER DELETE ...",
-      "sequence_number": 2,
-      "progress_weight": 1
-    }
+  "name": "Graduate Eligibility",
+  "criteria": ["Bachelors Degree", "Minimum 60% marks"]
+}
+```
+**Response:**
+```json
+{
+  "success": true,
+  "template_id": 55
+}
+```
+
+#### GET `/eligibility/list-eligibility-template`
+**Response:**
+```json
+[
+  { "template_id": 55, "name": "Graduate Eligibility" },
+  { "template_id": 56, "name": "Postgraduate Eligibility" }
+]
+```
+
+#### POST `/eligibility/update-eligibility-template`
+**Request Body:**
+```json
+{
+  "template_id": 55,
+  "name": "Updated Graduate Eligibility"
+}
+```
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Template updated"
+}
+```
+
+#### GET `/eligibility/view-eligibility-template?template_id=55`
+**Response:**
+```json
+{
+  "template_id": 55,
+  "name": "Graduate Eligibility",
+  "criteria": ["Bachelors Degree", "Minimum 60% marks"]
+}
+```
+
+#### POST `/eligibility/submit-eligibility-response`
+**Request Body:**
+```json
+{
+  "user_id": 10,
+  "template_id": 55,
+  "response": "Eligible"
+}
+```
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Response submitted"
+}
+```
+
+---
+
+## Assessment
+
+| Method | Endpoint                        | Description                        | Controller Function                |
+|--------|---------------------------------|------------------------------------|------------------------------------|
+| POST   | `/assessment/topic-assessment`           | Add a topic assessment             | topicAssessmentController          |
+| POST   | `/assessment/submit-topic-assessment`    | Submit a topic assessment          | topicAssessmentResponseController  |
+
+### Examples
+
+#### POST `/assessment/topic-assessment`
+**Request Body:**
+```json
+{
+  "program_id": 123,
+  "topic": "Functions",
+  "questions": [
+    { "question": "What is a closure?", "type": "short-answer" }
   ]
 }
 ```
-**Success Response:**
-```json
-{
-  "module_id": 4002,
-  "message": "Course content added successfully",
-  "topics_added": 2
-}
-```
-**Error Response:**
-```json
-{ "error": "learning_program_tid, module_title, module_description, module_sequence, and topics are required" }
-```
-
----
-
-## Edit Course Content
-
-**PUT** `/api/course-content`
-
-**Description:** Edit a module or a topic. Only these four fields are required in the body:
-- `content_type` ("module" or "topic")
-- `content_id` (number)
-- `content_json` (object with fields to update)
-- `learning_program_tid` (number)
-
-**Request Body (JSON) for editing a module:**
-```json
-{
-  "content_type": "module",
-  "content_id": 4002,
-  "content_json": {
-    "title": "Triggers in SQL (Updated)",
-    "description": "Updated module description",
-    "sequence_number": 2
-  },
-  "learning_program_tid": 3001
-}
-```
-**Request Body (JSON) for editing a topic:**
-```json
-{
-  "content_type": "topic",
-  "content_id": 5003,
-  "content_json": {
-    "title": "Before Insert Trigger (Updated)",
-    "description": "Updated before insert logic",
-    "content": "NEW TRIGGER ...",
-    "sequence_number": 1,
-    "progress_weight": 2
-  },
-  "learning_program_tid": 3001
-}
-```
-**Success Response (module):**
-```json
-{ "message": "Module updated successfully" }
-```
-**Success Response (topic):**
-```json
-{ "message": "Topic updated successfully" }
-```
-**Error Response:**
-```json
-{ "error": "content_type, content_id, content_json, and learning_program_tid are required" }
-```
-
----
-
-## Delete Course Content
-
-**DELETE** `/api/course-content`
-
-**Description:** Delete a module or topic from a learning program.
-
-**Request Body (JSON):**
-```json
-{
-  "content_type": "topic",
-  "content_id": 5003,
-  "learning_program_tid": 3001
-}
-```
-**Success Response (topic):**
-```json
-{
-  "message": "Topic deleted successfully",
-  "affected_rows": 1
-}
-```
-**Success Response (module):**
-```json
-{
-  "message": "Module and all its topics deleted successfully",
-  "affected_rows": 1
-}
-```
-**Error Response:**
-```json
-{ "error": "content_type, content_id, and learning_program_tid are required" }
-```
-
----
-
-## Add Learning Question
-
-**POST** `/api/learning-question`
-
-**Description:** Add a question for a topic by an enrolled user.
-
-**Request Body (JSON):**
-```json
-{
-  "enrollment_tid": 6001,
-  "topic_tid": 5001,
-  "question": {
-    "question_text": "How do AFTER triggers differ from BEFORE triggers?",
-    "type": "text"
-  }
-}
-```
-**Success Response:**
-```json
-{
-  "p_question_id": 7001,
-  "p_status_code": 200,
-  "p_message": "Question added successfully"
-}
-```
-**Error Response:**
-```json
-{ "error": "enrollment_tid, topic_tid, and question are required" }
-```
-
----
-
-## Send Invite
-
-**POST** `/api/invites`
-
-**Description:** Send an invite to a user for a program. Generates a unique code, stores it, and sends an email invite.
-
-**Request Body (JSON):**
-```json
-{
-  "email": "ravi@example.com",
-  "programId": 3001
-}
-```
-**Success Response:**
+**Response:**
 ```json
 {
   "success": true,
-  "code": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  "assessment_id": 77
 }
 ```
-**Error Response:**
-```json
-{ "error": "email and programId are required" }
-```
 
----
-
-## Redeem Invite
-
-**POST** `/api/invites/redeem`
-
-**Description:** Redeem an invite code to enroll a user in a program. Validates the code and enrolls the user if valid.
-
-**Request Body (JSON):**
+#### POST `/assessment/submit-topic-assessment`
+**Request Body:**
 ```json
 {
-  "email": "devashish.ind@gmail.com",
-  "code": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "userId": 3001
+  "assessment_id": 77,
+  "user_id": 10,
+  "answers": [
+    { "question_id": 1, "answer": "A closure is..." }
+  ]
 }
 ```
-**Success Response:**
+**Response:**
 ```json
 {
   "success": true,
-  "programId": 3001
+  "score": 8
 }
-```
-**Error Response:**
-```json
-{ "error": "email, code, and userId are required" }
 ```
 
 ---
 
-## Track Learning Progress
+## User
 
-**POST** `/api/track-progress`
+| Method | Endpoint                                  | Description                        | Controller Function         |
+|--------|-------------------------------------------|------------------------------------|----------------------------|
+| GET    | `/user/:user_tid/subscribed-courses`      | List courses a user is subscribed to| userController.listSubscribedCourses |
 
-**Description:** Update a user's progress on a topic.
+### Example
 
-**Request Body (JSON):**
+#### GET `/user/10/subscribed-courses`
+**Response:**
+```json
+[
+  { "course_id": 1, "name": "JavaScript Bootcamp" },
+  { "course_id": 2, "name": "Python Basics" }
+]
+```
+
+---
+
+## Invites
+
+| Method | Endpoint                | Description                        | Controller Function         |
+|--------|-------------------------|------------------------------------|----------------------------|
+| POST   | `/invite/`              | Send an invite                     | invitesController.sendInvite|
+| POST   | `/invites/`             | Send an invite                     | invitesController.sendInvite|
+| POST   | `/invites/redeem`       | Redeem an invite                   | invitesController.redeemInvite|
+
+### Examples
+
+#### POST `/invite/`
+**Request Body:**
 ```json
 {
-  "enrollment_tid": 6001,
-  "topic_tid": 5001,
-  "status": "completed"
+  "email": "user@example.com",
+  "program_id": 123
 }
 ```
-**Success Response:**
+**Response:**
 ```json
 {
-  "p_status_code": 200,
-  "p_message": "Progress updated successfully. Overall progress: 100%"
+  "success": true,
+  "invite_id": 99
 }
 ```
-**Error Response:**
+
+#### POST `/invites/redeem`
+**Request Body:**
 ```json
-{ "error": "enrollment_tid, topic_tid, and status are required" }
+{
+  "invite_code": "ABC123"
+}
+```
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Invite redeemed"
+}
 ```
 
 ---
 
-## List Subscribed Courses for a User
+## Learning Questions
 
-**GET** `/api/user/2001/subscribed-courses`
+| Method | Endpoint                | Description                        | Controller Function         |
+|--------|-------------------------|------------------------------------|----------------------------|
+| POST   | `/learning-question/`   | Add a learning question            | learningQuestionController.addLearningQuestion |
 
-**Description:** List all courses a user is subscribed to.
+### Example
 
-**Success Response:**
+#### POST `/learning-question/`
+**Request Body:**
+```json
+{
+  "program_id": 123,
+  "question": "Explain event loop in JS?"
+}
+```
+**Response:**
+```json
+{
+  "success": true,
+  "question_id": 5
+}
+```
+
+---
+
+## Track Progress
+
+| Method | Endpoint                | Description                        | Controller Function         |
+|--------|-------------------------|------------------------------------|----------------------------|
+| POST   | `/track-progress/`      | Track learning progress            | trackProgressController.trackProgress |
+
+### Example
+
+#### POST `/track-progress/`
+**Request Body:**
+```json
+{
+  "user_id": 10,
+  "program_id": 123,
+  "progress": 80
+}
+```
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Progress updated"
+}
+```
+
+---
+
+## Company Subscribers
+
+| Method | Endpoint                | Description                        | Controller Function         |
+|--------|-------------------------|------------------------------------|----------------------------|
+| GET    | `/company-subscribers/` | View company subscribers           | companySubscribersController.viewCompanySubscribers |
+
+### Example
+
+#### GET `/company-subscribers/`
+**Response:**
 ```json
 [
-  {
-    "enrollment_id": 6001,
-    "user_tid": 2001,
-    "learning_program_tid": 3001,
-    "course_title": "Advanced SQL Bootcamp",
-    "course_description": "A deep dive into SQL procedures.",
-    "difficulty_level": "high",
-    "image_path": null,
-    "price": 299.99,
-    "access_period_months": null,
-    "campus_hiring": null,
-    "sponsored": true,
-    "employer_name": "Acme Corp",
-    "enrollment_status": "in_progress",
-    "progress_percentage": 50,
-    "enrollment_date": "2024-05-01T10:00:00.000Z",
-    "expires_on": "2024-08-01T10:00:00.000Z",
-    "completed_at": null,
-    "certificate_issued": false,
-    "certificate_url": null,
-    "creator_name": "Acme Corp Admin",
-    "creator_email": "admin@acme.com",
-    "days_remaining": 60,
-    "is_expired": false
-  }
+  { "user_id": 10, "name": "Alice" },
+  { "user_id": 11, "name": "Bob" }
 ]
 ```
 
 ---
 
-## View Company Subscribers
+## Courses
 
-**GET** `/api/company-subscribers?company_user_tid=1001&learning_program_tid=3001&status=active`
+| Method | Endpoint                | Description                        | Controller Function         |
+|--------|-------------------------|------------------------------------|----------------------------|
+| GET    | `/courses/`             | List all courses                   | coursesController.listCourses |
 
-**Description:** List all users subscribed to company-created or sponsored courses.
+### Example
 
-**Success Response:**
+#### GET `/courses/`
+**Response:**
 ```json
 [
-  {
-    "enrollment_id": 6001,
-    "user_tid": 2001,
-    "subscriber_name": "John Doe",
-    "subscriber_email": "john@example.com",
-    "subscriber_phone": "8888811111",
-    "program_id": 3001,
-    "program_title": "Advanced SQL Bootcamp",
-    "creator_tid": 1001,
-    "enrollment_status": "in_progress",
-    "progress_percentage": 50,
-    "enrollment_date": "2024-05-01T10:00:00.000Z",
-    "expires_on": "2024-08-01T10:00:00.000Z",
-    "completed_at": null,
-    "certificate_issued": false,
-    "sponsorship_status": null,
-    "seats_allocated": null,
-    "seats_used": null,
-    "relationship_type": "Created"
-  }
+  { "course_id": 1, "name": "JavaScript Bootcamp" },
+  { "course_id": 2, "name": "Python Basics" }
 ]
 ```
 
 ---
 
-## List All Learning Courses
+## Course Content
 
-**GET** `/api/courses?creator_tid=1001&difficulty_level=high&sponsored=true&limit=10&offset=0`
+| Method | Endpoint                | Description                        | Controller Function         |
+|--------|-------------------------|------------------------------------|----------------------------|
+| POST   | `/course-content/`      | Add course content                 | courseContentController.addCourseContent |
+| PUT    | `/course-content/`      | Edit course content                | courseContentController.editCourseContent |
+| DELETE | `/course-content/`      | Delete course content              | courseContentController.deleteCourseContent |
 
-**Description:** List all learning courses with optional filters and pagination.
+### Examples
 
-**Success Response:**
+#### POST `/course-content/`
+**Request Body:**
+```json
+{
+  "course_id": 1,
+  "title": "Introduction",
+  "content": "Welcome to the course!"
+}
+```
+**Response:**
+```json
+{
+  "success": true,
+  "content_id": 101
+}
+```
+
+#### PUT `/course-content/`
+**Request Body:**
+```json
+{
+  "content_id": 101,
+  "title": "Intro Updated"
+}
+```
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Content updated"
+}
+```
+
+#### DELETE `/course-content/`
+**Request Body:**
+```json
+{
+  "content_id": 101
+}
+```
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Content deleted"
+}
+```
+
+---
+
+## Course Content With Progress
+
+| Method | Endpoint                | Description                        | Controller Function         |
+|--------|-------------------------|------------------------------------|----------------------------|
+| GET    | `/course-content-with-progress/` | View course content with progress | courseContentWithProgressController.viewCourseContentWithProgress |
+
+### Example
+
+#### GET `/course-content-with-progress/`
+**Response:**
 ```json
 [
-  {
-    "program_id": 3001,
-    "title": "Advanced SQL Bootcamp",
-    "description": "A deep dive into SQL procedures.",
-    "creator_tid": 1001,
-    "creator_name": "Acme Corp Admin",
-    "creator_email": "admin@acme.com",
-    "difficulty_level": "high",
-    "image_path": null,
-    "price": 299.99,
-    "access_period_months": null,
-    "available_slots": null,
-    "campus_hiring": null,
-    "sponsored": true,
-    "minimum_score": null,
-    "experience_from": null,
-    "experience_to": null,
-    "locations": null,
-    "employer_name": "Acme Corp",
-    "created_at": "2024-04-01T10:00:00.000Z",
-    "updated_at": "2024-04-10T10:00:00.000Z",
-    "enrollment_count": 2,
-    "module_count": 1,
-    "topic_count": 2,
-    "assessment_count": 0
-  }
+  { "content_id": 101, "title": "Introduction", "progress": 100 },
+  { "content_id": 102, "title": "Advanced", "progress": 60 }
 ]
 ```
 
 ---
 
-## View Course Content With Progress
+## Invite Templates
 
-**GET** `/api/course-content-with-progress?learning_program_tid=3001&user_tid=2001`
+| Method | Endpoint                        | Description                        | Controller Function                |
+|--------|---------------------------------|------------------------------------|------------------------------------|
+| GET    | `/invite-template/list-invite-template`   | List all invite templates          | listInviteTemplateController       |
+| POST   | `/invite-template/add-invite-template`    | Add a new invite template          | addInviteTemplateController        |
+| POST   | `/invite-template/update-invite-template` | Update an invite template          | updateInviteTemplateController     |
+| GET    | `/invite-template/view-invite-template`   | View an invite template            | viewInviteTemplateController       |
 
-**Description:** Get course content and progress for a user.
+### Examples
 
-**Success Response:**
+#### GET `/invite-template/list-invite-template`
+**Response:**
 ```json
 [
-  {
-    "course_id": 3001,
-    "course_title": "Advanced SQL Bootcamp",
-    "course_description": "A deep dive into SQL procedures.",
-    "difficulty_level": "high",
-    "image_path": null,
-    "overall_progress_percentage": 50,
-    "enrollment_status": "in_progress"
-  },
-  // ... modules and topics with progress ...
+  { "template_id": 1, "name": "Default Invite" },
+  { "template_id": 2, "name": "Special Invite" }
 ]
+```
+
+#### POST `/invite-template/add-invite-template`
+**Request Body:**
+```json
+{
+  "name": "Special Invite",
+  "content": "You are invited!"
+}
+```
+**Response:**
+```json
+{
+  "success": true,
+  "template_id": 2
+}
+```
+
+#### POST `/invite-template/update-invite-template`
+**Request Body:**
+```json
+{
+  "template_id": 2,
+  "name": "Special Invite Updated"
+}
+```
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Template updated"
+}
+```
+
+#### GET `/invite-template/view-invite-template?template_id=2`
+**Response:**
+```json
+{
+  "template_id": 2,
+  "name": "Special Invite",
+  "content": "You are invited!"
+}
 ```
 
 ---
 
-**How to use in Postman:**
-- Set the request type (GET, POST, PUT, DELETE).
-- For POST/PUT/DELETE, set the body to `raw` and `JSON`.
-- For GET, use query parameters or path parameters as shown.
-- Set the URL to `http://localhost:3000` (or your server's address) plus the endpoint. 
+**General Notes:**
+- All endpoints are prefixed with `/api/learning/` as per your `server.js`.
+- Controller function names are inferred from the route files and may need to be confirmed for exact handler names.
+- For endpoints with dynamic parameters (e.g., `:user_tid`), replace with actual values in requests.
+- All request/response examples are in JSON and ready for use in Postman. 

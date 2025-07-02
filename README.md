@@ -10,21 +10,33 @@ prepert-backend/
 │   │   ├── db.js
 │   │   ├── env.js
 │   ├── models/          # Database models & queries
+│   │   ├── interviewModel.js
+│   │   ├── learningModel.js
+│   │   ├── mockInterviewModel.js
+│   │   ├── screeningModel.js
 │   │   ├── userModel.js
-│   │   ├── postModel.js
 │   ├── controllers/     # Route logic handlers
+│   │   ├── interviewController.js
+│   │   ├── learningController.js
+│   │   ├── mockInterviewController.js
+│   │   ├── screeningController.js
 │   │   ├── userController.js
-│   │   ├── postController.js
 │   ├── routes/          # API routes
+│   │   ├── interviewRoutes.js
+│   │   ├── learningRoutes.js
+│   │   ├── mockinterviewRoutes.js
+│   │   ├── screeningRoutes.js
 │   │   ├── userRoutes.js
-│   │   ├── postRoutes.js
 │   ├── middlewares/     # Auth, error handling, validation
 │   │   ├── authMiddleware.js
 │   │   ├── errorMiddleware.js
 │   │   └── validate.js
 │   ├── services/        # Business logic, reusable services
+│   │   └── interviewService.js
+│   │   └── learningService.js
+│   │   └── mockInterviewService.js
+│   │   ├── screeningService.js
 │   │   ├── userService.js
-│   │   └── postService.js
 │   ├── utils/           # Helper functions, custom error classes
 │   │   ├── logger.js
 │   │   └── ApiError.js
@@ -36,4 +48,9 @@ prepert-backend/
 ├── README.md
 └── sql/                 # DB schema scripts
     ├── init.sql
+    ├── interview.sql
+    ├── learning.sql
+    ├── mockInterview.sql
+    ├── screening.sql
+    ├── user.sql
 ```

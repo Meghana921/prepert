@@ -20,7 +20,8 @@ CREATE PROCEDURE update_learning_program(
   IN in_employer_name VARCHAR(100),
   IN in_regret_message TEXT, 
   IN in_eligibility_template_id BIGINT,
-  IN in_invite_template_id BIGINT
+  IN in_invite_template_id BIGINT,
+  IN in_invitees JSON
 )
 BEGIN
   DECLARE custom_error VARCHAR(255);
@@ -29,7 +30,7 @@ BEGIN
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
     ROLLBACK;
-    SELECT JSON_OBJECT('error', COALESCE(custom_error, 'Error updating program')) AS result;
+    SELECT COALESCE(custom_error, 'Error updating program') AS message;
   END;
 
   START TRANSACTION;
@@ -62,6 +63,7 @@ BEGIN
     regret_message = in_regret_message,
     eligibility_template_tid = in_eligibility_template_id,
     invite_template_tid = in_invite_template_id
+    
   WHERE tid = in_program_id;
 
 UPDATE dt_learning_enrollments 
@@ -72,34 +74,31 @@ SET expires_on = DATE_ADD(
 WHERE learning_program_tid = in_program_id;
        
 
-  -- Return success message
+
+
+DELETE FROM dt_invitees 
+  WHERE learning_program_tid = in_program_id;
+
+
+  IF in_invitees IS NOT NULL AND JSON_LENGTH(in_invitees) > 0 THEN
+    INSERT INTO dt_invitees (learning_program_tid, name, email)
+    SELECT 
+      in_program_id,
+      JSON_UNQUOTE(JSON_EXTRACT(invitee, '$.name')),
+      JSON_UNQUOTE(JSON_EXTRACT(invitee, '$.email'))
+    FROM JSON_TABLE(
+      in_invitees,
+      '$[*]' COLUMNS(
+        invitee JSON PATH '$'
+      )
+    ) AS invites;
+  END IF;
+
+
   SELECT JSON_OBJECT(
-    'message', 'Program updated successfully',
     'program_id', in_program_id,
      'program_title',in_title
   ) AS data;
-
   COMMIT;
 END $$
 DELIMITER ;
-
-CALL  update_learning_program(5,
-  'Data Science Certification',                      -- in_title
-  'Comprehensive 6-month program covering machine learning and big data', -- description
-  15,                                                       -- creator_id (user ID who created this)
-  'high',                                                   -- difficulty_level
-  '/images/programs/data-science-advanced.jpg',             -- image_path
-  2999.99,                                                  -- price
-  5,                                                       -- access_period_months
-  50,                                                       -- available_slots
-  TRUE,                                                     -- campus_hiring
-  FALSE,                                                    -- sponsored
-  75,                                                       -- minimum_score
-  '2',                                                      -- experience_from (years)
-  '5',                                                      -- experience_to (years)
-  'Bangalore,Hyderabad,Remote',                             -- locations
-  'TechCorp Analytics',                                     -- employer_name
-  'We appreciate your application but require more experience for this program', -- regret_message
-  7,                                                        -- eligibility_template_id
-  12                                                        -- invite_template_id
-);

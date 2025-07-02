@@ -1,6 +1,6 @@
 const { pool } = require("../../config/db");
 
-const addLearningAssessment = async (req, res) => {
+const addProgramAssessment = async (req, res) => {
   try {
     const { 
       program_id: in_program_id,
@@ -11,7 +11,7 @@ const addLearningAssessment = async (req, res) => {
       questions: in_questions
     } = req.body;
 
-    // Validate required fields
+  
     if (!in_program_id || !in_title || !in_description || 
         in_question_count === undefined || in_passing_score === undefined) {
       return res.status(400).json({
@@ -20,7 +20,7 @@ const addLearningAssessment = async (req, res) => {
       });
     }
 
-    // Validate questions array if provided
+ 
     if (in_questions && (!Array.isArray(in_questions) || in_questions.length !== in_question_count)) {
       return res.status(400).json({
         status: false,
@@ -28,9 +28,9 @@ const addLearningAssessment = async (req, res) => {
       });
     }
 
-    // Call the stored procedure
+ 
     const [result] = await pool.query(
-      "CALL add_learning_assessment(?, ?, ?, ?, ?, ?)",
+      "CALL add_program_assessment(?, ?, ?, ?, ?, ?)",
       [
         in_program_id,
         in_title,
@@ -41,7 +41,7 @@ const addLearningAssessment = async (req, res) => {
       ]
     );
 
-    // Handle error message from stored procedure
+   
     if (result[0]?.[0]?.message) {
       return res.status(409).json({
         status: false,
@@ -49,7 +49,7 @@ const addLearningAssessment = async (req, res) => {
       });
     }
 
-    // Handle successful response
+   
     if (result[0]?.[0]?.data) {
       return res.status(201).json({
         data: result[0][0].data,
@@ -58,11 +58,7 @@ const addLearningAssessment = async (req, res) => {
       });
     }
 
-    // Handle unexpected response format
-    return res.status(500).json({
-      status: false,
-      error: "Unexpected response format from database",
-    });
+
 
   } catch (error) {
     console.error("Error in addLearningAssessment:", error);
@@ -74,4 +70,4 @@ const addLearningAssessment = async (req, res) => {
   }
 };
 
-module.exports = addLearningAssessment;
+module.exports = addProgramAssessment;

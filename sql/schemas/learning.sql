@@ -1,4 +1,6 @@
-CREATE DATABASE prepertdevdb;
+DROP DATABASE IF EXISTS prepertdevdb;
+CREATE DATABASE prepertdevdb
+CHARACTER SET utf8mb4 COLLATE  utf8mb4_unicode_ci;
 USE prepertdevdb;
 -- ============================================================================
 -- Core Learning Program Tables
@@ -57,7 +59,6 @@ CREATE TABLE dt_learning_topics (
     content TEXT COMMENT 'Actual content or reference to content',
     sequence_number SMALLINT NOT NULL COMMENT 'Order of the topic',
     progress_weight INT DEFAULT 1 COMMENT 'Weight in progress calculations',
-    estimated_minutes INT COMMENT 'Estimated minutes to complete',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_module_tid (module_tid)
@@ -126,20 +127,20 @@ CREATE TABLE dt_learning_questions (
 -- Assessment Tables
 -- ============================================================================
 -- Assessments for learning programs
+DROP TABLE IF EXISTS dt_learning_assessments;
 CREATE TABLE dt_learning_assessments (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     learning_program_tid BIGINT UNSIGNED NOT NULL,
     title VARCHAR(100) NOT NULL,
     description TEXT,
-    is_final BOOLEAN DEFAULT FALSE COMMENT 'Whether this is the final assessment',
     question_count SMALLINT UNSIGNED DEFAULT 10,
     passing_score TINYINT UNSIGNED,
-    time_limit_minutes INT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_learning_program_tid (learning_program_tid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 -- Assessment questions
+DROP TABLE IF EXISTS dt_assessment_questions;
 CREATE TABLE dt_assessment_questions (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     assessment_tid BIGINT UNSIGNED NOT NULL,
@@ -151,6 +152,7 @@ CREATE TABLE dt_assessment_questions (
     INDEX idx_assessment_tid (assessment_tid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 -- User assessment attempts
+DROP TABLE IF EXISTS dt_assessment_attempts ;
 CREATE TABLE dt_assessment_attempts (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     assessment_tid BIGINT UNSIGNED NOT NULL,
@@ -166,6 +168,7 @@ CREATE TABLE dt_assessment_attempts (
     INDEX idx_enrollment_tid (enrollment_tid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 -- User assessment answers
+DROP TABLE IF EXISTS dt_assessment_responses;
 CREATE TABLE dt_assessment_responses (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     attempt_tid BIGINT UNSIGNED NOT NULL,
@@ -177,6 +180,22 @@ CREATE TABLE dt_assessment_responses (
     INDEX idx_attempt_tid (attempt_tid),
     INDEX idx_question_tid (question_tid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+-- Topic-based assessment table
+DROP TABLE IF EXISTS dt_topic_assessments;
+CREATE TABLE dt_topic_assessments (
+    tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_tid BIGINT UNSIGNED NOT NULL COMMENT 'User who took the assessment',
+    topic_tid BIGINT UNSIGNED NOT NULL COMMENT 'Topic being assessed',
+    total_questions TINYINT DEFAULT 10,
+    gpt_questions_answers JSON NOT NULL COMMENT 'GPT-generated questions and correct  in JSON format',
+    user_responses JSON COMMENT 'User responses in JSON format',
+    total_score INT COMMENT '1 marks for each question',
+    taken_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'When assessment was taken',
+    INDEX idx_user (user_tid),
+    INDEX idx_topic (topic_tid)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
 -- ============================================================================
 -- Eligibility & Invite Templates
 -- ============================================================================
@@ -274,15 +293,11 @@ CREATE TABLE dt_user_sponsorships (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     program_sponsorship_tid BIGINT UNSIGNED NOT NULL,
     user_tid BIGINT UNSIGNED NOT NULL,
-    status ENUM('offered', 'accepted', 'declined', 'expired') NOT NULL DEFAULT 'offered',
-    offered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    response_at DATETIME,
     enrollment_tid BIGINT UNSIGNED COMMENT 'Created enrollment if accepted',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_program_sponsorship_tid (program_sponsorship_tid),
-    INDEX idx_user_tid (user_tid),
-    INDEX idx_status (status)
+    INDEX idx_user_tid (user_tid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 -- ============================================================================
 -- End of Learning Schema

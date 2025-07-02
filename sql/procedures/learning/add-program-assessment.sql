@@ -1,7 +1,7 @@
-DROP PROCEDURE IF EXISTS add_learning_assessment;
+DROP PROCEDURE IF EXISTS add_program_assessment;
 
 DELIMITER //
-CREATE PROCEDURE add_learning_assessment (
+CREATE PROCEDURE add_program_assessment (
     IN in_program_id BIGINT UNSIGNED,
     IN in_title VARCHAR(100),
     IN in_description TEXT,
@@ -133,42 +133,3 @@ COMMIT;
 END //
 DELIMITER ;
 
-CALL add_learning_assessment (
-    1, -- in_program_id (must exist in dt_learning_programs)
-    'Basic Math Assessment', -- in_title
-    'Test your basic math skills', -- in_description
-    3, -- in_question_count (should match number of questions)
-    70, -- in_passing_score (percentage)
-    JSON_ARRAY ( -- in_questions (array of question objects)
-        JSON_OBJECT (
-            'question',
-            'What is 2 + 2?',
-            'options',
-            JSON_ARRAY ('3', '4', '5', '6'),
-            'correct_option',
-            '4',
-            'score',
-            1
-        ),
-        JSON_OBJECT (
-            'question',
-            'What is 5 × 7?',
-            'options',
-            JSON_ARRAY ('25', '30', '35', '40'),
-            'correct_option',
-            '35',
-            'score',
-            1
-        ),
-        JSON_OBJECT (
-            'question',
-            'What is 10 ÷ 2?',
-            'options',
-            JSON_ARRAY ('2', '5', '8', '10'),
-            'correct_option',
-            '5',
-            'score',
-            1
-        )
-    )
-);

@@ -27,14 +27,15 @@ SET
 
 SELECT
     a.tid AS assessment_tid,
-    JSON_ARRAYAGG (
-        JSON_OBJECT ('question', q.question, 'options', q.options)
+    JSON_ARRAYAGG(
+        JSON_OBJECT ('question_id',q.question_id,'question', q.question, 'options', q.options)
     ) AS questions
 FROM
     dt_topic_assessments a,
     JSON_TABLE (
         a.gpt_questions_answers,
         '$[*]' COLUMNS (
+        question_id VARCHAR(50) PATH '$.question_id',
             question TEXT PATH '$.question',
             options JSON PATH '$.options'
         )
@@ -46,3 +47,5 @@ GROUP BY
 
 END //
  DELIMITER ;
+ 
+ 

@@ -20,7 +20,6 @@ BEGIN
     
     START TRANSACTION;
     
-    -- Validate assessment exists
     IF NOT EXISTS (
         SELECT 1 FROM dt_learning_assessments 
         WHERE tid = p_assessment_id
@@ -29,14 +28,14 @@ BEGIN
         SIGNAL SQLSTATE '45000';
     END IF;
     
-    -- Get current question count
-    SELECT COUNT(*) INTO v_question_count
+  
+    SELECT COUNT(tid) INTO v_question_count
     FROM dt_assessment_questions
     WHERE assessment_tid = p_assessment_id;
     
-    -- Process each question in the input JSON
+
     IF p_questions IS NOT NULL AND JSON_LENGTH(p_questions) > 0 THEN
-        -- First delete questions not included in the update
+     
         DELETE FROM dt_assessment_questions
         WHERE assessment_tid = p_assessment_id
         AND tid NOT IN (
@@ -52,7 +51,7 @@ BEGIN
         
         SET v_deleted_count = ROW_COUNT();
         
-        -- Update existing questions
+    
         UPDATE dt_assessment_questions q
         JOIN (
             SELECT 
@@ -79,7 +78,7 @@ BEGIN
         
         SET v_updated_count = ROW_COUNT();
         
-        -- Insert new questions (those without question_id)
+      
         INSERT INTO dt_assessment_questions (
             assessment_tid,
             question,
@@ -106,7 +105,6 @@ BEGIN
         SET v_inserted_count = ROW_COUNT();
     END IF;
     
-    -- Update assessment question count if needed
     IF v_deleted_count > 0 OR v_inserted_count > 0 THEN
         UPDATE dt_learning_assessments
         SET question_count = (
@@ -119,15 +117,10 @@ BEGIN
     
     COMMIT;
     
-    -- Return summary of changes
+
     SELECT JSON_OBJECT(
-        'assessment_id', p_assessment_id,
-        'previous_question_count', v_question_count,
-        'current_question_count', v_question_count - v_deleted_count + v_inserted_count,
-        'questions_updated', v_updated_count,
-        'questions_deleted', v_deleted_count,
-        'questions_added', v_inserted_count
-    ) AS result;
+        'assessment_id', p_assessment_id
+    ) AS data;
 END //
 
 DELIMITER ;

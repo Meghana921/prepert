@@ -1,43 +1,45 @@
 const { pool } = require("../../config/db");
 
-const viewProgramAssessment = async (req, res) => {
+const submitProgramAssessment = async (req, res) => {
   try {
-    const { programId } = req.params;
+    
+    const { user_id,program_id, responses } = req.body;
 
-    // Validate programId is provided
-    if (!programId) {
+   
+    if (!user_id ||!program_id|| !responses || !Array.isArray(responses)) {
       return res.status(400).json({
         status: false,
-        error: "Program ID is required",
+        error: "Missing required fields:user_id,program_id and responses array are required",
       });
     }
 
-    // Call the stored procedure
+    
     const [result] = await pool.query(
-      "CALL view_program_assessment(?)",
-      [programId]
+      "CALL submit_program_assessment(?, ?, ?)",
+      [user_id, program_id, JSON.stringify(responses)]
     );
 
-    // Handle case when no assessment exists
-    if (!result[0]?.[0]?.data) {
-      return res.status(404).json({
+  
+    if (result[0]?.[0]?.error) {
+      return res.status(409).json({
         status: false,
-        message: "No assessment found for this program",
+        message: result[0][0].error,
       });
     }
 
-    // Parse the JSON data from the database
-    const assessmentData = JSON.parse(result[0][0].data);
+   
+    if (result[0][0]) {
+      return res.status(201).json({
+        data: result[0][0],
+        status: true,
+        message: "Assessment submitted successfully!"
+      });
+    }
 
-    // Return successful response
-    return res.status(200).json({
-      data: assessmentData,
-      status: true,
-      message: "Assessment retrieved successfully"
-    });
+   
 
   } catch (error) {
-    console.error("Error in viewProgramAssessment:", error);
+    console.error("Error in submitProgramAssessment:", error);
     return res.status(500).json({
       status: false,
       error: "Internal server error",
@@ -46,4 +48,4 @@ const viewProgramAssessment = async (req, res) => {
   }
 };
 
-module.exports = viewProgramAssessment;
+module.exports = submitProgramAssessment;

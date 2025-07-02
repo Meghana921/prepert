@@ -125,17 +125,3 @@ BEGIN
 END $$
 DELIMITER ;
 
-CALL eligibility_response(
-  17,  -- in_user_id
-  1,   -- in_program_id (Advanced Machine Learning)
-  '[{
-    "question_tid": 1,
-    "response": "no"
-  }, {
-    "question_tid": 2,
-    "response": "yes"
-  }, {
-    "question_tid": 3,
-    "response": "no"
-  }]'  -- in_questions
-);

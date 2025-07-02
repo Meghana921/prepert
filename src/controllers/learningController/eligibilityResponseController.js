@@ -32,7 +32,8 @@ const submitEligibilityResponse = async (req, res) => {
       data: {
         passed: responseData.passed,
         message: responseData.message,
-      }
+      },
+      status:true
     });
 
   } catch (error) {

@@ -16,50 +16,20 @@ const view_program = async (req, res) => {
       program_id
     ]);
 
-    // Handle error message from stored procedure
-    if (result[0]?.[0]?.message) {
-      return res.status(404).json({
-        status: false,
-        error: result[0][0].message
-      });
-    }
-
-    // Handle successful response
-    if (result[0]?.[0]?.data) {
-      const programData = typeof result[0][0].data === 'string' 
-        ? JSON.parse(result[0][0].data) 
-        : result[0][0].data;
-      
-      return res.status(200).json({
-        status: true,
-        data: programData,
-        message: "Program retrieved successfully"
-      });
-    }
-
-
-    return res.status(404).json({
-      status: false,
-      error: "Program not found"
-    });
-
-  } catch (error) {
-    console.error('Error viewing program:', error);
-
  
-    if (error.code === '45000') {
-      return res.status(404).json({
-        status: false,
-        error: "Program not found"
-      });
+
+    if (result[0]?.[0]?.message) {
+      return res.status(400).json({ error: result[0][0] });
     }
 
-    return res.status(500).json({
-      status: false,
-      error: "Internal server error",
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+
+    res.status(201).json({ data: result[0][0].data, status: true, message: "Program fetched successfully!" });
+  } catch (error) {
+    console.error('Error creating program:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      details: error.message
     });
   }
 };
-
 module.exports = view_program;

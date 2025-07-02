@@ -14,7 +14,7 @@ BEGIN
     DECLARE v_question_count INT DEFAULT 0;
     DECLARE v_passing_score INT;
     DECLARE v_passed BOOLEAN DEFAULT FALSE;
-    
+START TRANSACTION;
     SELECT tid INTO v_enrollment_id
     FROM dt_learning_enrollments
     WHERE user_tid = p_user_id 
@@ -28,28 +28,25 @@ BEGIN
     WHERE learning_program_tid = p_program_id
     LIMIT 1;
     
-    -- Create new attempt record
+ 
     INSERT INTO dt_assessment_attempts (
         assessment_tid,
         user_tid,
-        enrollment_tid,
-        started_at
+        enrollment_tid
     ) VALUES (
         v_assessment_id,
         p_user_id,
-        v_enrollment_id,
-        CURRENT_TIMESTAMP
+        v_enrollment_id
     );
     
     SET v_attempt_id = LAST_INSERT_ID();
     
-    -- Get assessment requirements
     SELECT question_count, passing_score 
     INTO v_question_count, v_passing_score
     FROM dt_learning_assessments 
     WHERE tid = v_assessment_id;
     
-    -- Process each response
+  
     INSERT INTO dt_assessment_responses (
         attempt_tid, 
         question_tid, 
@@ -82,7 +79,7 @@ BEGIN
         )
     ) AS responses;
     
-    -- Calculate total score
+
     SELECT SUM(score) INTO v_total_score
     FROM dt_assessment_responses
     WHERE attempt_tid = v_attempt_id;
@@ -133,17 +130,9 @@ BEGIN
             JOIN dt_assessment_questions q ON r.question_tid = q.tid
             WHERE r.attempt_tid = v_attempt_id
         )
-    ) AS assessment_result;
+    ) AS data;
+COMMIT ;
 END //
 
 DELIMITER ;
 
-CALL submit_user_assessment(
-    5,  -- user ID
-    1,  -- program ID
-    '[
-        {"question_id": 13, "selected_option": "Paris"},
-        {"question_id": 14, "selected_option": "SQL"},
-        {"question_id": 15, "selected_option": "False"}
-    ]'
-);

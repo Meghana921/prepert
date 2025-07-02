@@ -2,19 +2,19 @@ const { pool } = require("../../config/db");
 
 const submitTopicAssessment = async (req, res) => {
   try {
-    const { assessment_tid, user_tid, responses } = req.body;
+    const { assessment_id, user_id, responses } = req.body;
 
 
-    if (!assessment_tid || !user_tid || !responses) {
+    if (!assessment_id || !user_id || !responses) {
       return res.status(400).json({
         status: false,
-        error: "Missing required fields (assessment_tid, user_tid, responses)"
+        error: "Missing required fields (assessment_id, user_id, responses)"
       });
     }
 
     const [result] = await pool.query(
       "CALL evaluate_assessment(?, ?, ?)",
-      [assessment_tid, user_tid, JSON.stringify(responses)]
+      [assessment_id, user_id, JSON.stringify(responses)]
     );
 
 

@@ -1,7 +1,7 @@
 const { pool } = require("../../config/db");
 const sendEmail = require("../../utils/sendEmail");
 
-const add_program = async (req, res) => {
+const addProgram = async (req, res) => {
   try {
     const {
       title:in_title,
@@ -96,4 +96,4 @@ const add_program = async (req, res) => {
   }
 };
 
-module.exports = add_program;
+module.exports = addProgram;

@@ -2,7 +2,7 @@ const { pool } = require("../../config/db");
 
 const addTopicAssessment = async (req, res) => {
   try {
-    const { user_tid:in_user_tid, topic_tid:in_topic_tid, questions_json:in_questions_json } = req.body;
+    const { user_id: in_user_tid, topic_id: in_topic_tid, questions_json: in_questions_json } = req.body;
 
 
     if (!in_user_tid || !in_topic_tid || !in_questions_json) {
@@ -13,7 +13,7 @@ const addTopicAssessment = async (req, res) => {
     }
 
     const [result] = await pool.query(
-      "CALL add_and_show_questions(?, ?, ?)",
+      "CALL add_topic_assessment(?, ?, ?)",
       [in_user_tid, in_topic_tid, JSON.stringify(in_questions_json)]
     );
 

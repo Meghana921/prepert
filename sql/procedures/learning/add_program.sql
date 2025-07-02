@@ -30,13 +30,10 @@ DECLARE existing_tid BIGINT;
 DECLARE EXIT HANDLER FOR SQLEXCEPTION BEGIN ROLLBACK;
 
 SELECT
-    JSON_OBJECT (
-        'error',
         COALESCE(
             custom_error,
             'An error occurred during program creation'
-        )
-    ) AS result;
+        )as message;
 
 END;
 
@@ -54,7 +51,7 @@ IF existing_tid IS NOT NULL THEN
 SET
     custom_error = CONCAT (
         in_title,
-        ' program already exists. You can view and edit program ID: ',
+        ' Program already exists. You can view and edit program ID: ',
         existing_tid
     );
 
@@ -145,40 +142,10 @@ SELECT
         learning_program_id,
         'program_name',
         in_title
-    ) AS result;
+    ) AS data;
 
 COMMIT;
 
 END //
 DELIMITER ;
 
-CALL add_learning_program(
-    'Advanced Data Science Certification',  -- in_title
-    'A comprehensive program covering machine learning, big data analytics, and AI fundamentals',  -- in_description
-    123,  -- in_creator_id (must exist in users table)
-    'high',  -- in_difficulty_level
-    '/images/data-science-cert.jpg',  -- in_image_path
-    1999.99,  -- in_price
-    12,  -- in_access_period_months
-    50,  -- in_available_slots
-    TRUE,  -- in_campus_hiring
-    FALSE,  -- in_sponsored
-    75,  -- in_minimum_score
-    '2',  -- in_experience_from (years)
-    '5',  -- in_experience_to (years)
-    'Remote, Bangalore, Hyderabad',  -- in_locations
-    'TechEd Inc.',  -- in_employer_name
-    'We regret to inform you that your application was not successful this time',  -- in_regret_message
-    456,  -- in_eligibility_template_id (must exist if not NULL)
-    789,  -- in_invite_template_id (must exist if not NULL)
-    JSON_ARRAY(  -- in_invitees
-        JSON_OBJECT(
-            'name', 'Rahul Sharma',
-            'email', 'rahul.sharma@example.com'
-        ),
-        JSON_OBJECT(
-            'name', 'Priya Patel',
-            'email', 'priya.patel@example.com'
-        )
-    )
-);

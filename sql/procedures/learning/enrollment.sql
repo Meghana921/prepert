@@ -81,7 +81,8 @@ BEGIN
   
   IF email_id IS NOT NULL THEN
     UPDATE dt_invitees
-    SET enrollment_tid = enrollment_id
+    SET enrollment_tid = enrollment_id,
+	response_at = current_timestamp()
     WHERE learning_program_tid = in_program_id AND email = email_id;
   END IF;
 
@@ -92,4 +93,4 @@ END $$
 DELIMITER ;
 
 
-call learning_enrollment(1,1);
+

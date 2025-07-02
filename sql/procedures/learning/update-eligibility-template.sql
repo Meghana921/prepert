@@ -69,31 +69,5 @@ END $$
 
 DELIMITER ;
 
-CALL update_eligibility_template(
-  1,  -- creator_id (engineering manager's ID)
-  'Data Engineer  2025',  -- template_name
-  -- JSON array of questions (engineering-focused)
-  '[
-    {
-      "question": "Do you have 3+ years of professional software development experience?",
-      "deciding_answer": "yes",
-      "sequence_number": 1
-    },
-    {
-      "question": "Are you proficient in Python or Java?",
-      "deciding_answer": "yes",
-      "sequence_number": 2
-    },
-    {
-      "question": "Have you worked with cloud platforms (AWS/Azure/GCP)?",
-      "deciding_answer": "yes",
-      "sequence_number": 3
-    },
-    {
-      "question": "Can you demonstrate experience with CI/CD pipelines?",
-      "deciding_answer": "no",
-      "sequence_number": 4
-    }
-  ]'
-);
+
 

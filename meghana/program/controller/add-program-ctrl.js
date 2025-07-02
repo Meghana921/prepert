@@ -1,4 +1,4 @@
-const { pool } = require("../db");
+const { pool } = require("../../../db");
 
 const add_program = async (req, res) => {
   try {
@@ -49,18 +49,18 @@ const add_program = async (req, res) => {
       ]
     );
 
-    // Check for error result
+
     if (result[0] && result[0][0] && result[0][0].error) {
       return res.status(400).json({ error: result[0][0].error });
     }
 
-    // Successful creation
-    res.status(201).json({data:result[0][0],status:true,message:"Program created successfully!"});
+
+    res.status(201).json({ data: result[0][0], status: true, message: "Program created successfully!" });
   } catch (error) {
     console.error('Error creating program:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Internal server error',
-      details: error.message 
+      details: error.message
     });
   }
 };

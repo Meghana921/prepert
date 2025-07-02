@@ -1,4 +1,4 @@
-const { pool } = require("../../db");
+const { pool } = require("../../../db");
 
 const updateInviteTemplate = async (req, res) => {
   try {
@@ -10,7 +10,7 @@ const updateInviteTemplate = async (req, res) => {
       body: in_new_body,
     } = req.body;
 
-    // Validate required fields
+   
     if (
       !in_creator_tid ||
       !in_template_id ||

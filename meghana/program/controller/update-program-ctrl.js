@@ -1,4 +1,4 @@
-const { pool } = require("../db");
+const { pool } = require("../../../db");
 
 const updateLearningProgram = async (req, res) => {
   try {
@@ -62,7 +62,7 @@ const updateLearningProgram = async (req, res) => {
         error: "No response from database"
       });
     }
-    
+
     const procedureResult = result[0][0];
     console.log(procedureResult);
     if (procedureResult.error) {

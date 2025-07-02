@@ -1,4 +1,4 @@
-const { pool } = require("../../db");
+const { pool } = require("../../../db");
 
 
 const listEligibilityTemplates = async (req, res) => {
@@ -8,9 +8,10 @@ const listEligibilityTemplates = async (req, res) => {
       creator_id
     ]);
     console.log(result[0])
-    res.status(200).json({"data":result[0],
-      "status":true,
-      "message":"Templates fetched successfully!"
+    res.status(200).json({
+      "data": result[0],
+      "status": true,
+      "message": "Templates fetched successfully!"
     });
   } catch (error) {
     return res.status(500).json({
@@ -20,4 +21,4 @@ const listEligibilityTemplates = async (req, res) => {
   }
 };
 
-module.exports = listEligibilityTemplates ;
+module.exports = listEligibilityTemplates;

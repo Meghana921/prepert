@@ -1,7 +1,6 @@
 DROP PROCEDURE IF EXISTS add_topic_assessment;
 
-DELIMITER //
-CREATE PROCEDURE add_topic_assessment (
+DELIMITER / / CREATE PROCEDURE add_topic_assessment (
     IN in_user_tid BIGINT UNSIGNED,
     IN in_topic_tid BIGINT UNSIGNED,
     IN in_questions_json JSON
@@ -44,5 +43,4 @@ WHERE
 GROUP BY
     a.tid;
 
-END //
- DELIMITER ;
+END / / DELIMITER;

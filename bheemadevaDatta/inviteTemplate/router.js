@@ -6,10 +6,10 @@ const listInviteTemplates = require('./controller/list-ctrl');
 const updateInviteTemplate = require('./controller/update-ctrl');
 const viewInviteTemplate = require('./controller/view-ctrl');
 
-inviteRouter.get('/list-invite-template',listInviteTemplates);
-inviteRouter.post('/add-invite-template',addInviteTemplate);
-inviteRouter.post('/update-invite-template',updateInviteTemplate);
-inviteRouter.get('/view-invite-template',viewInviteTemplate);
+inviteRouter.get('/list-invite-template', listInviteTemplates);
+inviteRouter.post('/add-invite-template', addInviteTemplate);
+inviteRouter.post('/update-invite-template', updateInviteTemplate);
+inviteRouter.get('/view-invite-template', viewInviteTemplate);
 
 
 module.exports = inviteRouter;

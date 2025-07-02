@@ -1,7 +1,7 @@
 DROP PROCEDURE IF EXISTS sp_process_assessment_data;
 DELIMITER //
 
-CREATE PROCEDURE sp_process_assessment_data(
+CREATE PROCEDURE add_learning_assessment(
     IN p_assessment_data JSON,
     IN p_questions_data JSON
 )

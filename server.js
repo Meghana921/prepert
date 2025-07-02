@@ -1,10 +1,10 @@
 const express = require("express");
 const app = express();
 const { testConnection, pool } = require("./db");
-const programRouter = require("./program/router");
-const eTemplateRouter = require("./eTemplate/router");
-const inviteRouter = require('./inviteTemplate/router')
-const assessmentRouter = require('./assessment/router')
+const programRouter = require("./meghana/program/router");
+const eTemplateRouter = require("./meghana/eTemplate/router");
+const inviteRouter = require('./bheemadevaDatta/inviteTemplate/router');
+const assessmentRouter = require('./meghana/assessment/router');
 testConnection();
 
 app.use(express.json());

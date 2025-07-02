@@ -1,8 +1,8 @@
-const { pool } = require("../../db");
+const { pool } = require("../../../db");
 
 const viewInviteTemplate = async (req, res) => {
   try {
-    const { template_id } = req.body; // Assuming ID comes from URL params
+    const { template_id } = req.body;
 
     if (!template_id) {
       return res.status(400).json({
@@ -16,7 +16,7 @@ const viewInviteTemplate = async (req, res) => {
       [template_id]
     );
 
-    // Check for error message from procedure
+
     if (result[0]?.[0]?.message) {
       return res.status(404).json({
         status: false,
@@ -24,7 +24,7 @@ const viewInviteTemplate = async (req, res) => {
       });
     }
 
-    // Successful response
+
     if (result[0][0]) {
       return res.status(200).json({
         status: true,

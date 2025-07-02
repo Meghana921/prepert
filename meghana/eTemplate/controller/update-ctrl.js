@@ -1,4 +1,4 @@
-const { pool } = require("../../db");
+const { pool } = require("../../../db");
 
 const updateEligibilityTemplate = async (req, res) => {
   try {
@@ -6,7 +6,7 @@ const updateEligibilityTemplate = async (req, res) => {
 
     if (!template_id || !template_name || !eligibility_questions) {
       return res.status(400).json({
-        status:false,
+        status: false,
         error: "Missing required fields",
       });
     }
@@ -32,7 +32,7 @@ const updateEligibilityTemplate = async (req, res) => {
       result[0][0].template_id
     ) {
       return res.status(201).json({
-        data:result,
+        data: result,
         message: "Template updated successfully"
       });
     }

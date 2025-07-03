@@ -1,3 +1,4 @@
+DROP PROCEDURE IF EXISTS sp_add_learning_question;
 DELIMITER $$
 
 CREATE PROCEDURE sp_add_learning_question(
@@ -5,48 +6,45 @@ CREATE PROCEDURE sp_add_learning_question(
     IN  p_topic_tid      BIGINT UNSIGNED,
     IN  p_question       JSON
 )
-BEGIN
+main_block: BEGIN
     DECLARE v_question_id BIGINT UNSIGNED;
-    DECLARE v_status_code INT DEFAULT 200;
-    DECLARE v_message VARCHAR(255) DEFAULT 'Question added successfully';
     DECLARE v_enrollment_exists INT DEFAULT 0;
     DECLARE v_topic_exists      INT DEFAULT 0;
+    DECLARE custom_error VARCHAR(255);
 
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
-        SET v_status_code = 500;
-        SET v_message     = 'Database error occurred while adding question';
-        SELECT NULL AS question_id, v_status_code AS status_code, v_message AS message;
-        RESIGNAL;
+        SELECT JSON_OBJECT(
+            'status', FALSE,
+            'message', COALESCE(custom_error, 'Database error occurred while adding question')
+        ) AS data;
     END;
 
     START TRANSACTION;
 
-    -- Validate enrollment exists
+    -- Validate enrollment
     SELECT COUNT(*) INTO v_enrollment_exists
     FROM dt_learning_enrollments
     WHERE tid = p_enrollment_tid;
 
     IF v_enrollment_exists = 0 THEN
-        SET v_status_code = 404;
-        SET v_message     = 'Enrollment not found';
+        SET custom_error = 'Enrollment not found';
         ROLLBACK;
-        SELECT NULL AS question_id, v_status_code AS status_code, v_message AS message;
-        LEAVE BEGIN;
+        SELECT JSON_OBJECT('status', FALSE, 'message', custom_error) AS data;
+        LEAVE main_block;
     END IF;
 
-    -- Validate topic exists
+    -- Validate topic
     SELECT COUNT(*) INTO v_topic_exists
     FROM dt_learning_topics
     WHERE tid = p_topic_tid;
 
     IF v_topic_exists = 0 THEN
-        SET v_status_code = 404;
-        SET v_message     = 'Topic not found';
+        SET custom_error = 'Topic not found';
         ROLLBACK;
-        SELECT NULL AS question_id, v_status_code AS status_code, v_message AS message;
-        LEAVE BEGIN;
+        SELECT JSON_OBJECT('status', FALSE, 'message', custom_error) AS data;
+        LEAVE main_block;
     END IF;
 
     -- Insert question
@@ -66,20 +64,13 @@ BEGIN
 
     COMMIT;
 
-    SELECT v_question_id AS question_id, v_status_code AS status_code, v_message AS message;
-END$$
+    SELECT JSON_OBJECT(
+        'status', TRUE,
+        'data', JSON_OBJECT(
+            'question_id', v_question_id,
+            'message', 'Question added successfully'
+        )
+    ) AS data;
+END $$
 
 DELIMITER ;
-
-SET @question_id = NULL;
-SET @status_code = NULL;
-SET @message = NULL;
-
-CALL sp_add_learning_question(
-  6001,
-  5001,
-  JSON_OBJECT('question_text','How do AFTER triggers differ from BEFORE triggers?','type','text')
-);
-
-SELECT @question_id, @status_code, @message;
-

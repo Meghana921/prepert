@@ -1,6 +1,6 @@
 DROP PROCEDURE IF EXISTS view_program;
-
 DELIMITER //
+
 CREATE PROCEDURE view_program(
     IN creator_id BIGINT, 
     IN program_id BIGINT
@@ -8,24 +8,26 @@ CREATE PROCEDURE view_program(
 BEGIN 
     DECLARE program_exists INT DEFAULT 0;
     DECLARE custom_error VARCHAR(255) DEFAULT NULL;
-    
+
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
-             SELECT COALESCE(custom_error, 'Error fetching program details')
-         AS message;
+        SELECT JSON_OBJECT(
+            'status', FALSE,
+            'message', COALESCE(custom_error, 'Error fetching program details')
+        ) AS data;
     END;
-    
-    -- Check if program exists
+
+    -- Check if program exists and belongs to the creator
     SELECT COUNT(*) INTO program_exists
     FROM dt_learning_programs
     WHERE tid = program_id AND creator_tid = creator_id;
-    
+
     IF program_exists = 0 THEN
         SET custom_error = 'Program not found';
         SIGNAL SQLSTATE '45000';
     END IF;
-    
 
+    -- Return program info with templates and invitees
     SELECT
         JSON_OBJECT(
             'status', TRUE,
@@ -48,12 +50,16 @@ BEGIN
                 'employer_name', lp.employer_name,
                 'regret_message', lp.regret_message,
                 'eligibility_template', (
-                    SELECT et.name FROM dt_eligibility_templates et 
-                    WHERE et.tid = lp.eligibility_template_tid LIMIT 1
+                    SELECT et.name 
+                    FROM dt_eligibility_templates et 
+                    WHERE et.tid = lp.eligibility_template_tid 
+                    LIMIT 1
                 ),
                 'invite_template', (
-                    SELECT it.name FROM dt_invite_templates it 
-                    WHERE it.tid = lp.invite_template_tid LIMIT 1
+                    SELECT it.name 
+                    FROM dt_invite_templates it 
+                    WHERE it.tid = lp.invite_template_tid 
+                    LIMIT 1
                 ),
                 'invitees', COALESCE(
                     (
@@ -69,7 +75,6 @@ BEGIN
         ) AS data
     FROM dt_learning_programs lp
     WHERE lp.tid = program_id;
+
 END //
 DELIMITER ;
-call  view_program(1,2);
-

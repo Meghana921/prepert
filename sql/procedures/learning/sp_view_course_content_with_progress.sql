@@ -1,76 +1,108 @@
-DELIMITER //
+DROP PROCEDURE IF EXISTS sp_view_course_content_with_progress;
+DELIMITER $$
 
 CREATE PROCEDURE sp_view_course_content_with_progress(
     IN p_learning_program_tid BIGINT UNSIGNED,
-    IN p_user_tid BIGINT UNSIGNED
+    IN p_user_tid             BIGINT UNSIGNED
 )
 BEGIN
     DECLARE v_enrollment_id BIGINT UNSIGNED DEFAULT NULL;
-    
-    -- Get enrollment ID if user is enrolled
+
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        SELECT JSON_OBJECT(
+            'status', FALSE,
+            'message', 'Error occurred while fetching course content with progress'
+        ) AS data;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+
+    -- Get enrollment ID
     SELECT tid INTO v_enrollment_id
     FROM dt_learning_enrollments 
-    WHERE user_tid = p_user_tid AND learning_program_tid = p_learning_program_tid;
+    WHERE user_tid = p_user_tid AND learning_program_tid = p_learning_program_tid
+    LIMIT 1;
 
-    -- Get course basic info
-    SELECT 
-        lp.tid AS course_id,
-        lp.title AS course_title,
-        lp.description AS course_description,
-        lp.difficulty_level,
-        lp.image_path,
-        CASE WHEN v_enrollment_id IS NOT NULL THEN le.progress_percentage ELSE 0 END AS overall_progress_percentage,
-        CASE WHEN v_enrollment_id IS NOT NULL THEN le.status ELSE 'not_enrolled' END AS enrollment_status
-    FROM dt_learning_programs lp
-    LEFT JOIN dt_learning_enrollments le ON lp.tid = le.learning_program_tid AND le.user_tid = p_user_tid
-    WHERE lp.tid = p_learning_program_tid;
+    -- Return full JSON object with all 3 parts: course info, topics with progress, and module summary
+    SELECT JSON_OBJECT(
+        'status', TRUE,
+        'data', JSON_OBJECT(
+            'course_info',
+            (
+                SELECT JSON_OBJECT(
+                    'course_id', lp.tid,
+                    'course_title', lp.title,
+                    'course_description', lp.description,
+                    'difficulty_level', lp.difficulty_level,
+                    'image_path', lp.image_path,
+                    'overall_progress_percentage', IFNULL(le.progress_percentage, 0),
+                    'enrollment_status', IFNULL(le.status, 'not_enrolled')
+                )
+                FROM dt_learning_programs lp
+                LEFT JOIN dt_learning_enrollments le 
+                    ON lp.tid = le.learning_program_tid AND le.user_tid = p_user_tid
+                WHERE lp.tid = p_learning_program_tid
+            ),
 
-    -- Get modules with their topics and progress
-    SELECT 
-        lm.tid AS module_id,
-        lm.title AS module_title,
-        lm.description AS module_description,
-        lm.sequence_number AS module_sequence,
-        lt.tid AS topic_id,
-        lt.title AS topic_title,
-        lt.description AS topic_description,
-        lt.content_type,
-        lt.content,
-        lt.sequence_number AS topic_sequence,
-        lt.progress_weight,
-        CASE 
-            WHEN v_enrollment_id IS NOT NULL THEN COALESCE(lp.status, 'not_started')
-            ELSE 'not_enrolled'
-        END AS topic_status,
-        CASE 
-            WHEN v_enrollment_id IS NOT NULL THEN COALESCE(lp.time_spent_minutes, 0)
-            ELSE 0
-        END AS time_spent_minutes,
-        lp.completion_date
-    FROM dt_learning_modules lm
-    LEFT JOIN dt_learning_topics lt ON lm.tid = lt.module_tid
-    LEFT JOIN dt_learning_progress lp ON lt.tid = lp.topic_tid AND lp.enrollment_tid = v_enrollment_id
-    WHERE lm.learning_program_tid = p_learning_program_tid
-    ORDER BY lm.sequence_number, lt.sequence_number;
+            'topics_with_progress',
+            (
+                SELECT JSON_ARRAYAGG(
+                    JSON_OBJECT(
+                        'module_id', lm.tid,
+                        'module_title', lm.title,
+                        'module_description', lm.description,
+                        'module_sequence', lm.sequence_number,
+                        'topic_id', lt.tid,
+                        'topic_title', lt.title,
+                        'topic_description', lt.description,
+                        'content_type', lt.content_type,
+                        'content', lt.content,
+                        'topic_sequence', lt.sequence_number,
+                        'progress_weight', lt.progress_weight,
+                        'topic_status', IFNULL(lp.status, 'not_started'),
+                        'time_spent_minutes', IFNULL(lp.time_spent_minutes, 0),
+                        'completion_date', lp.completion_date
+                    )
+                )
+                FROM dt_learning_modules lm
+                LEFT JOIN dt_learning_topics lt ON lm.tid = lt.module_tid
+                LEFT JOIN dt_learning_progress lp 
+                    ON lt.tid = lp.topic_tid AND lp.enrollment_tid = v_enrollment_id
+                WHERE lm.learning_program_tid = p_learning_program_tid
+                ORDER BY lm.sequence_number, lt.sequence_number
+            ),
 
-    -- Get module-wise progress summary
-    SELECT 
-        lm.tid AS module_id,
-        lm.title AS module_title,
-        COUNT(lt.tid) AS total_topics,
-        COUNT(CASE WHEN lp.status = 'completed' THEN 1 END) AS completed_topics,
-        CASE 
-            WHEN COUNT(lt.tid) > 0 THEN 
-                ROUND((COUNT(CASE WHEN lp.status = 'completed' THEN 1 END) * 100.0) / COUNT(lt.tid), 2)
-            ELSE 0
-        END AS module_progress_percentage
-    FROM dt_learning_modules lm
-    LEFT JOIN dt_learning_topics lt ON lm.tid = lt.module_tid
-    LEFT JOIN dt_learning_progress lp ON lt.tid = lp.topic_tid AND lp.enrollment_tid = v_enrollment_id
-    WHERE lm.learning_program_tid = p_learning_program_tid
-    GROUP BY lm.tid, lm.title, lm.sequence_number
-    ORDER BY lm.sequence_number;
+            'module_progress_summary',
+            (
+                SELECT JSON_ARRAYAGG(
+                    JSON_OBJECT(
+                        'module_id', lm.tid,
+                        'module_title', lm.title,
+                        'total_topics', COUNT(lt.tid),
+                        'completed_topics', COUNT(CASE WHEN lp.status = 'completed' THEN 1 END),
+                        'module_progress_percentage',
+                            CASE
+                                WHEN COUNT(lt.tid) > 0 THEN 
+                                    ROUND((COUNT(CASE WHEN lp.status = 'completed' THEN 1 END) * 100.0) / COUNT(lt.tid), 2)
+                                ELSE 0
+                            END
+                    )
+                )
+                FROM dt_learning_modules lm
+                LEFT JOIN dt_learning_topics lt ON lm.tid = lt.module_tid
+                LEFT JOIN dt_learning_progress lp 
+                    ON lt.tid = lp.topic_tid AND lp.enrollment_tid = v_enrollment_id
+                WHERE lm.learning_program_tid = p_learning_program_tid
+                GROUP BY lm.tid, lm.title
+                ORDER BY lm.sequence_number
+            )
+        )
+    ) AS data;
 
-END //
+    COMMIT;
+END $$
 
 DELIMITER ;

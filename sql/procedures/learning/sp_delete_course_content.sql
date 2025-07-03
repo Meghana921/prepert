@@ -1,4 +1,4 @@
-
+DROP PROCEDURE IF EXISTS sp_delete_course_content;
 DELIMITER //
 
 CREATE PROCEDURE sp_delete_course_content(
@@ -6,20 +6,22 @@ CREATE PROCEDURE sp_delete_course_content(
     IN p_content_id BIGINT UNSIGNED,
     IN p_learning_program_tid BIGINT UNSIGNED
 )
-BEGIN
+main_block: BEGIN
     DECLARE v_content_exists INT DEFAULT 0;
     DECLARE v_program_match INT DEFAULT 0;
-    
+    DECLARE custom_error VARCHAR(255);
+
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
-        RESIGNAL;
+        SELECT JSON_OBJECT('status', FALSE, 'message', COALESCE(custom_error, 'Database error')) AS data;
     END;
 
     START TRANSACTION;
 
     IF p_content_type = 'module' THEN
-        -- Check if module exists and belongs to the program
+
+        -- Check existence and association
         SELECT COUNT(*) INTO v_content_exists 
         FROM dt_learning_modules 
         WHERE tid = p_content_id;
@@ -29,32 +31,40 @@ BEGIN
         WHERE tid = p_content_id AND learning_program_tid = p_learning_program_tid;
 
         IF v_content_exists = 0 THEN
-            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Module not found';
+            SET custom_error = 'Module not found';
+            SIGNAL SQLSTATE '45000';
         END IF;
 
         IF v_program_match = 0 THEN
-            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Module does not belong to this program';
+            SET custom_error = 'Module does not belong to the specified program';
+            SIGNAL SQLSTATE '45000';
         END IF;
 
-        -- Delete all topics in the module first
-        DELETE FROM dt_learning_topics 
-        WHERE module_tid = p_content_id;
-
-        -- Delete learning progress for topics in this module
+        -- Delete progress and topics
         DELETE lp FROM dt_learning_progress lp
         JOIN dt_learning_topics lt ON lp.topic_tid = lt.tid
         WHERE lt.module_tid = p_content_id;
 
-        -- Delete the module
+        DELETE FROM dt_learning_topics 
+        WHERE module_tid = p_content_id;
+
         DELETE FROM dt_learning_modules 
         WHERE tid = p_content_id;
 
-        SELECT 
-            'Module and all its topics deleted successfully' AS message,
-            ROW_COUNT() AS affected_rows;
+        COMMIT;
+
+        SELECT JSON_OBJECT(
+            'status', TRUE,
+            'data', JSON_OBJECT(
+                'deleted_type', 'module',
+                'deleted_id', p_content_id,
+                'message', 'Module and its associated topics deleted successfully'
+            )
+        ) AS data;
 
     ELSEIF p_content_type = 'topic' THEN
-        -- Check if topic exists and belongs to a module of the program
+
+        -- Check topic existence
         SELECT COUNT(*) INTO v_content_exists 
         FROM dt_learning_topics lt
         JOIN dt_learning_modules lm ON lt.module_tid = lm.tid
@@ -66,47 +76,40 @@ BEGIN
         WHERE lt.tid = p_content_id AND lm.learning_program_tid = p_learning_program_tid;
 
         IF v_content_exists = 0 THEN
-            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Topic not found';
+            SET custom_error = 'Topic not found';
+            SIGNAL SQLSTATE '45000';
         END IF;
 
         IF v_program_match = 0 THEN
-            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Topic does not belong to this program';
+            SET custom_error = 'Topic does not belong to the specified program';
+            SIGNAL SQLSTATE '45000';
         END IF;
 
-        -- Delete learning progress for this topic
+        -- Delete progress and questions
         DELETE FROM dt_learning_progress 
         WHERE topic_tid = p_content_id;
 
-        -- Delete learning questions for this topic
         DELETE FROM dt_learning_questions 
         WHERE topic_tid = p_content_id;
 
-        -- Delete the topic
         DELETE FROM dt_learning_topics 
         WHERE tid = p_content_id;
 
-        SELECT 
-            'Topic deleted successfully' AS message,
-            ROW_COUNT() AS affected_rows;
+        COMMIT;
+
+        SELECT JSON_OBJECT(
+            'status', TRUE,
+            'data', JSON_OBJECT(
+                'deleted_type', 'topic',
+                'deleted_id', p_content_id,
+                'message', 'Topic deleted successfully'
+            )
+        ) AS data;
 
     ELSE
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Invalid content type. Use "module" or "topic"';
+        SET custom_error = 'Invalid content type. Use "module" or "topic"';
+        SIGNAL SQLSTATE '45000';
     END IF;
 
-    COMMIT;
 END //
-
 DELIMITER ;
-CALL sp_add_course_content(
-  3001,
-  'Indexes in SQL',
-  'Learn about indexing strategies.',
-  6,
-  JSON_ARRAY(
-    JSON_OBJECT('title','Index Basics','description','Intro to indexes','content','CREATE INDEX ...','sequence_number',1,'progress_weight',1),
-    JSON_OBJECT('title','Unique Index','description','Ensuring uniqueness','content','CREATE UNIQUE INDEX ...','sequence_number',2,'progress_weight',2)
-  )
-);
-CALL sp_delete_course_content('topic', 20, 3001);
-
-call sp_view_all_lms_data_flat();

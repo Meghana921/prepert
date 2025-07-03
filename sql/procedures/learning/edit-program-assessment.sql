@@ -1,126 +1,151 @@
-DROP PROCEDURE IF EXISTS edit_assessment_questions;
+DROP PROCEDURE IF EXISTS submit_program_assessment;
 DELIMITER //
 
-CREATE PROCEDURE edit_assessment_questions(
-    IN p_assessment_id BIGINT UNSIGNED,
-    IN p_questions JSON
+CREATE PROCEDURE submit_program_assessment(
+    IN p_user_id BIGINT UNSIGNED,
+    IN p_program_id BIGINT UNSIGNED,
+    IN p_responses JSON
 )
 BEGIN
+    DECLARE v_enrollment_id BIGINT UNSIGNED;
+    DECLARE v_assessment_id BIGINT UNSIGNED;
+    DECLARE v_attempt_id BIGINT UNSIGNED;
+    DECLARE v_total_score INT DEFAULT 0;
     DECLARE v_question_count INT DEFAULT 0;
-    DECLARE v_updated_count INT DEFAULT 0;
-    DECLARE v_deleted_count INT DEFAULT 0;
-    DECLARE v_inserted_count INT DEFAULT 0;
+    DECLARE v_passing_score INT;
+    DECLARE v_passed BOOLEAN DEFAULT FALSE;
     DECLARE custom_error VARCHAR(255);
-    
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION 
+
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
-        SELECT COALESCE(custom_error, 'An error occurred during question updates') AS message;
+        SELECT JSON_OBJECT(
+            'status', FALSE,
+            'message', COALESCE(custom_error, 'An error occurred during assessment submission')
+        ) AS data;
     END;
-    
+
     START TRANSACTION;
-    
-    IF NOT EXISTS (
-        SELECT 1 FROM dt_learning_assessments 
-        WHERE tid = p_assessment_id
-    ) THEN
-        SET custom_error = CONCAT('Assessment with ID ', p_assessment_id, ' does not exist');
-        SIGNAL SQLSTATE '45000';
-    END IF;
-    
-  
-    SELECT COUNT(tid) INTO v_question_count
-    FROM dt_assessment_questions
-    WHERE assessment_tid = p_assessment_id;
-    
 
-    IF p_questions IS NOT NULL AND JSON_LENGTH(p_questions) > 0 THEN
-     
-        DELETE FROM dt_assessment_questions
-        WHERE assessment_tid = p_assessment_id
-        AND tid NOT IN (
-            SELECT JSON_UNQUOTE(JSON_EXTRACT(question, '$.question_id'))
-            FROM JSON_TABLE(
-                p_questions,
-                '$[*]' COLUMNS(
-                    question JSON PATH '$'
-                )
-            ) AS questions
-            WHERE JSON_EXTRACT(question, '$.question_id') IS NOT NULL
-        );
-        
-        SET v_deleted_count = ROW_COUNT();
-        
-    
-        UPDATE dt_assessment_questions q
-        JOIN (
-            SELECT 
-                JSON_UNQUOTE(JSON_EXTRACT(question, '$.question_id')) AS question_id,
-                JSON_UNQUOTE(JSON_EXTRACT(question, '$.question')) AS question_text,
-                JSON_EXTRACT(question, '$.options') AS options,
-                JSON_UNQUOTE(JSON_EXTRACT(question, '$.correct_option')) AS correct_option,
-                JSON_EXTRACT(question, '$.score') AS score
-            FROM JSON_TABLE(
-                p_questions,
-                '$[*]' COLUMNS(
-                    question JSON PATH '$'
-                )
-            ) AS questions
-            WHERE JSON_EXTRACT(question, '$.question_id') IS NOT NULL
-        ) AS updates ON q.tid = updates.question_id
-        SET 
-            q.question = updates.question_text,
-            q.options = updates.options,
-            q.correct_option = updates.correct_option,
-            q.score = IFNULL(updates.score, q.score),
-            q.created_at = CURRENT_TIMESTAMP
-        WHERE q.assessment_tid = p_assessment_id;
-        
-        SET v_updated_count = ROW_COUNT();
-        
-      
-        INSERT INTO dt_assessment_questions (
-            assessment_tid,
-            question,
-            options,
-            correct_option,
-            score,
-            created_at
-        )
-        SELECT 
-            p_assessment_id,
-            JSON_UNQUOTE(JSON_EXTRACT(question, '$.question')),
-            JSON_EXTRACT(question, '$.options'),
-            JSON_UNQUOTE(JSON_EXTRACT(question, '$.correct_option')),
-            IFNULL(JSON_EXTRACT(question, '$.score'), 1),
-            CURRENT_TIMESTAMP
-        FROM JSON_TABLE(
-            p_questions,
-            '$[*]' COLUMNS(
-                question JSON PATH '$'
+    -- 1. Validate enrollment
+    SELECT tid INTO v_enrollment_id
+    FROM dt_learning_enrollments
+    WHERE user_tid = p_user_id 
+      AND learning_program_tid = p_program_id
+      AND status IN ('completed')
+    LIMIT 1;
+
+    -- 2. Get program-level assessment
+    SELECT tid, question_count, passing_score
+    INTO v_assessment_id, v_question_count, v_passing_score
+    FROM dt_learning_assessments
+    WHERE learning_program_tid = p_program_id
+    LIMIT 1;
+
+    -- 3. Insert new attempt
+    INSERT INTO dt_assessment_attempts (
+        assessment_tid,
+        user_tid,
+        enrollment_tid
+    ) VALUES (
+        v_assessment_id,
+        p_user_id,
+        v_enrollment_id
+    );
+
+    SET v_attempt_id = LAST_INSERT_ID();
+
+    -- 4. Insert responses
+    INSERT INTO dt_assessment_responses (
+        attempt_tid, 
+        question_tid, 
+        selected_option, 
+        is_correct, 
+        score
+    )
+    SELECT 
+        v_attempt_id,
+        JSON_UNQUOTE(JSON_EXTRACT(response, '$.question_id')),
+        JSON_UNQUOTE(JSON_EXTRACT(response, '$.selected_option')),
+        (
+            SELECT JSON_UNQUOTE(JSON_EXTRACT(response, '$.selected_option')) = q.correct_option
+            FROM dt_assessment_questions q
+            WHERE q.tid = JSON_UNQUOTE(JSON_EXTRACT(response, '$.question_id'))
+        ),
+        (
+            SELECT IF(
+                JSON_UNQUOTE(JSON_EXTRACT(response, '$.selected_option')) = q.correct_option,
+                q.score,
+                0
             )
-        ) AS questions
-        WHERE JSON_EXTRACT(question, '$.question_id') IS NULL;
-        
-        SET v_inserted_count = ROW_COUNT();
-    END IF;
-    
-    IF v_deleted_count > 0 OR v_inserted_count > 0 THEN
-        UPDATE dt_learning_assessments
-        SET question_count = (
-            SELECT COUNT(*) 
-            FROM dt_assessment_questions
-            WHERE assessment_tid = p_assessment_id
+            FROM dt_assessment_questions q
+            WHERE q.tid = JSON_UNQUOTE(JSON_EXTRACT(response, '$.question_id'))
         )
-        WHERE tid = p_assessment_id;
+    FROM JSON_TABLE(
+        p_responses,
+        '$[*]' COLUMNS(
+            response JSON PATH '$'
+        )
+    ) AS responses;
+
+    -- 5. Calculate total score
+    SELECT SUM(score) INTO v_total_score
+    FROM dt_assessment_responses
+    WHERE attempt_tid = v_attempt_id;
+
+    -- 6. Determine pass/fail
+    SET v_passed = (v_total_score >= v_passing_score);
+
+    -- 7. Update attempt
+    UPDATE dt_assessment_attempts
+    SET 
+        score = v_total_score,
+        passed = v_passed,
+        completed_at = CURRENT_TIMESTAMP
+    WHERE tid = v_attempt_id;
+
+    -- 8. Update enrollment progress if passed
+    IF v_passed THEN
+        UPDATE dt_learning_enrollments
+        SET 
+            progress_percentage = 100,
+            status = 'completed',
+            completed_at = CURRENT_TIMESTAMP
+        WHERE tid = v_enrollment_id;
     END IF;
-    
-    COMMIT;
-    
 
+    -- 9. Return JSON response
     SELECT JSON_OBJECT(
-        'assessment_id', p_assessment_id
+        'status', TRUE,
+        'data', JSON_OBJECT(
+            'attempt_id', v_attempt_id,
+            'user_id', p_user_id,
+            'enrollment_id', v_enrollment_id,
+            'assessment_id', v_assessment_id,
+            'total_score', v_total_score,
+            'max_possible_score', v_question_count,
+            'passed', v_passed,
+            'completion_time', CURRENT_TIMESTAMP,
+            'responses', (
+                SELECT JSON_ARRAYAGG(
+                    JSON_OBJECT(
+                        'question_id', r.question_tid,
+                        'selected_option', r.selected_option,
+                        'correct_option', q.correct_option,
+                        'is_correct', r.is_correct,
+                        'score_earned', r.score,
+                        'max_score', q.score
+                    )
+                )
+                FROM dt_assessment_responses r
+                JOIN dt_assessment_questions q 
+                  ON r.question_tid = q.tid
+                WHERE r.attempt_tid = v_attempt_id
+            )
+        )
     ) AS data;
-END //
 
+    COMMIT;
+END;
+//
 DELIMITER ;

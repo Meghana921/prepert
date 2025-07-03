@@ -1,5 +1,6 @@
 DROP PROCEDURE IF EXISTS eligibility_response;
 DELIMITER $$
+
 CREATE PROCEDURE eligibility_response(
   IN in_user_id BIGINT,
   IN in_program_id BIGINT,
@@ -14,31 +15,30 @@ BEGIN
   DECLARE response_count INT DEFAULT 0;
   DECLARE expected_questions INT DEFAULT 0;
   DECLARE error_message VARCHAR(255);
-  
+
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
     ROLLBACK;
-    IF error_message IS NOT NULL THEN
-      SELECT error_message AS error;
-    ELSE
-      SELECT 'An error occurred while processing your eligibility response' AS error;
-    END IF;
+    SELECT JSON_OBJECT(
+      'status', FALSE,
+      'message', COALESCE(error_message, 'An error occurred while processing your eligibility response')
+    ) AS data;
   END;
 
   START TRANSACTION;
-  
-  -- Validate program exists and get template
+
+  -- 1. Get eligibility template and regret message
   SELECT eligibility_template_tid, regret_message 
   INTO template_id, in_regret_message
   FROM dt_learning_programs 
   WHERE tid = in_program_id;
-  
+
   IF template_id IS NULL THEN
     SET error_message = CONCAT('Invalid program ID: ', in_program_id);
     SIGNAL SQLSTATE '45000';
   END IF;
-  
-  -- Check for existing response
+
+  -- 2. Prevent resubmission
   IF EXISTS (
     SELECT 1 FROM dt_eligibility_responses 
     WHERE user_tid = in_user_id AND learning_program_tid = in_program_id
@@ -46,14 +46,14 @@ BEGIN
     SET error_message = 'You have already submitted an eligibility response for this program';
     SIGNAL SQLSTATE '45000';
   END IF;
-  
-  -- Count expected questions for this template using tid
+
+  -- 3. Count expected questions
   SELECT COUNT(tid) INTO expected_questions
   FROM dt_eligibility_questions
   WHERE template_tid = template_id;
-  
-  -- Insert responses with validation
-  INSERT INTO dt_eligibility_responses(
+
+  -- 4. Insert responses
+  INSERT INTO dt_eligibility_responses (
     user_tid, 
     learning_program_tid,
     question_tid,
@@ -76,11 +76,10 @@ BEGIN
     SELECT tid FROM dt_eligibility_questions 
     WHERE template_tid = template_id
   );
-  
-  -- Count actual inserted responses
+
+  -- 5. Validate response count
   SELECT ROW_COUNT() INTO response_count;
-  
-  -- Validate all questions were answered
+
   IF response_count = 0 THEN
     SET error_message = 'No valid responses were inserted - check question IDs';
     SIGNAL SQLSTATE '45000';
@@ -88,19 +87,18 @@ BEGIN
     SET error_message = CONCAT('Incomplete responses. Expected: ', expected_questions, ', Received: ', response_count);
     SIGNAL SQLSTATE '45000';
   END IF;
-  
-  -- Calculate correct answers using tid
+
+  -- 6. Evaluate eligibility
   SELECT COUNT(r.tid) INTO correct_answers
   FROM dt_eligibility_responses r
   JOIN dt_eligibility_questions q ON r.question_tid = q.tid
   WHERE r.user_tid = in_user_id
     AND r.learning_program_tid = in_program_id
     AND r.answer = q.deciding_answer;
-  
-  -- Determine eligibility (must get ALL answers correct)
+
   SET is_eligible = (correct_answers = expected_questions);
-  
-  -- Record final result
+
+  -- 7. Record result
   INSERT INTO dt_eligibility_results (
     user_tid,
     learning_program_tid,
@@ -109,19 +107,25 @@ BEGIN
     in_user_id,
     in_program_id,
     is_eligible
-  ) 
+  )
   ON DUPLICATE KEY UPDATE 
     passed = is_eligible;
-  
-  -- Return result
-  SELECT 
-    is_eligible AS passed,
-    CASE 
-      WHEN is_eligible THEN 'You are eligible for this program'
-      ELSE in_regret_message
-    END AS message;
+
+  -- 8. Return final JSON response
+  SELECT JSON_OBJECT(
+    'status', TRUE,
+    'data', JSON_OBJECT(
+      'user_id', in_user_id,
+      'program_id', in_program_id,
+      'passed', is_eligible,
+      'message', CASE 
+                  WHEN is_eligible THEN 'You are eligible for this program'
+                  ELSE in_regret_message
+                END
+    )
+  ) AS data;
 
   COMMIT;
 END $$
-DELIMITER ;
 
+DELIMITER ;

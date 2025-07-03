@@ -25,20 +25,26 @@ CREATE PROCEDURE update_learning_program(
 )
 BEGIN
   DECLARE custom_error VARCHAR(255);
-   DECLARE expire_date DATE;
-  DECLARE access_months INT;
+  DECLARE program_exists INT DEFAULT 0;
+
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
     ROLLBACK;
-    SELECT COALESCE(custom_error, 'Error updating program') AS message;
+    SELECT JSON_OBJECT(
+      'status', FALSE,
+      'message', COALESCE(custom_error, 'Error updating program')
+    ) AS data;
+    RESIGNAL;
   END;
 
   START TRANSACTION;
 
-  -- Check if program exists
-  IF (SELECT 0 
+  -- Check if the program exists
+  SELECT COUNT(*) INTO program_exists
   FROM dt_learning_programs
-  WHERE tid = in_program_id AND creator_tid = in_creator_id) THEN
+  WHERE tid = in_program_id AND creator_tid = in_creator_id;
+
+  IF program_exists = 0 THEN
     SET custom_error = 'Program not found!';
     SIGNAL SQLSTATE '45000';
   END IF;
@@ -63,23 +69,18 @@ BEGIN
     regret_message = in_regret_message,
     eligibility_template_tid = in_eligibility_template_id,
     invite_template_tid = in_invite_template_id
-    
   WHERE tid = in_program_id;
 
-UPDATE dt_learning_enrollments 
-SET expires_on = DATE_ADD(
-                enrollment_date, 
-                INTERVAL in_access_period_months MONTH
-            )
-WHERE learning_program_tid = in_program_id;
-       
-
-
-
-DELETE FROM dt_invitees 
+  -- Update expires_on for all enrollments
+  UPDATE dt_learning_enrollments 
+  SET expires_on = DATE_ADD(enrollment_date, INTERVAL in_access_period_months MONTH)
   WHERE learning_program_tid = in_program_id;
 
+  -- Remove old invitees
+  DELETE FROM dt_invitees 
+  WHERE learning_program_tid = in_program_id;
 
+  -- Insert new invitees if provided
   IF in_invitees IS NOT NULL AND JSON_LENGTH(in_invitees) > 0 THEN
     INSERT INTO dt_invitees (learning_program_tid, name, email)
     SELECT 
@@ -88,17 +89,21 @@ DELETE FROM dt_invitees
       JSON_UNQUOTE(JSON_EXTRACT(invitee, '$.email'))
     FROM JSON_TABLE(
       in_invitees,
-      '$[*]' COLUMNS(
-        invitee JSON PATH '$'
-      )
+      '$[*]' COLUMNS(invitee JSON PATH '$')
     ) AS invites;
   END IF;
 
-
-  SELECT JSON_OBJECT(
-    'program_id', in_program_id,
-     'program_title',in_title
-  ) AS data;
   COMMIT;
+
+  -- Return success
+  SELECT JSON_OBJECT(
+    'status', TRUE,
+    'data', JSON_OBJECT(
+      'program_id', in_program_id,
+      'program_title', in_title
+    )
+  ) AS data;
+
 END $$
+
 DELIMITER ;

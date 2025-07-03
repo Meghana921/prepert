@@ -1,0 +1,121 @@
+DROP PROCEDURE IF EXISTS learning_enrollment;
+DELIMITER $$
+
+CREATE PROCEDURE learning_enrollment(
+  IN in_user_id BIGINT,
+  IN in_program_id BIGINT
+)
+BEGIN 
+  DECLARE expire_date DATE;
+  DECLARE access_months INT;
+  DECLARE enrollment_id BIGINT;
+  DECLARE available_slots INT;
+  DECLARE current_enrollments INT;
+  DECLARE email_id VARCHAR(100);
+  DECLARE custom_error VARCHAR(255);
+
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  BEGIN
+    ROLLBACK;
+    SELECT JSON_OBJECT(
+      'status', FALSE,
+      'message', COALESCE(custom_error, 'Failed to enroll due to a database error')
+    ) AS data;
+  END;
+
+  START TRANSACTION;
+
+  -- 1. Program existence check
+  IF NOT EXISTS (
+    SELECT 1 FROM dt_learning_programs WHERE tid = in_program_id
+  ) THEN
+    SET custom_error = 'Program not found';
+    SIGNAL SQLSTATE '45000';
+  END IF;
+
+  -- 2. Duplicate enrollment check
+  IF EXISTS (
+    SELECT 1 FROM dt_learning_enrollments 
+    WHERE user_tid = in_user_id AND learning_program_tid = in_program_id
+  ) THEN
+    SET custom_error = 'User is already enrolled in this program';
+    SIGNAL SQLSTATE '45000';
+  END IF;
+
+  -- 3. Slot availability check
+  SELECT available_slots, access_period_months INTO available_slots, access_months
+  FROM dt_learning_programs 
+  WHERE tid = in_program_id;
+
+  SELECT COUNT(*) INTO current_enrollments
+  FROM dt_learning_enrollments 
+  WHERE learning_program_tid = in_program_id;
+
+  IF available_slots > 0 AND current_enrollments >= available_slots THEN
+    SET custom_error = 'No available slots in this program';
+    SIGNAL SQLSTATE '45000';
+  END IF;
+
+  -- 4. Calculate expiry date (if applicable)
+  SET expire_date = IFNULL(
+    CASE 
+      WHEN access_months > 0 THEN DATE_ADD(CURRENT_DATE(), INTERVAL access_months MONTH)
+      ELSE NULL
+    END,
+    NULL
+  );
+
+  -- 5. Insert enrollment
+  INSERT INTO dt_learning_enrollments(
+    user_tid, 
+    learning_program_tid,
+    expires_on
+  ) VALUES (
+    in_user_id,
+    in_program_id,
+    expire_date
+  );
+
+  SET enrollment_id = LAST_INSERT_ID();
+
+  -- 6. Update sponsorship usage if sponsored
+  IF EXISTS (
+    SELECT 1 FROM dt_learning_programs 
+    WHERE tid = in_program_id AND sponsored = TRUE
+  ) THEN
+    UPDATE dt_program_sponsorships
+    SET seats_used = seats_used + 1
+    WHERE learning_program_tid = in_program_id;
+  END IF;
+
+  -- 7. Update invitee if exists
+  SELECT email INTO email_id 
+  FROM dt_users 
+  WHERE tid = in_user_id;
+
+  IF email_id IS NOT NULL THEN
+    UPDATE dt_invitees
+    SET 
+      enrollment_tid = enrollment_id,
+      response_at = CURRENT_TIMESTAMP
+    WHERE 
+      learning_program_tid = in_program_id 
+      AND email = email_id;
+  END IF;
+
+  COMMIT;
+
+  -- 8. Final JSON response
+  SELECT JSON_OBJECT(
+    'status', TRUE,
+    'data', JSON_OBJECT(
+      'enrollment_id', enrollment_id,
+      'user_id', in_user_id,
+      'program_id', in_program_id,
+      'expires_on', expire_date
+    )
+  ) AS data;
+
+END $$
+
+DELIMITER ;

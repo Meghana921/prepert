@@ -1,3 +1,4 @@
+DROP PROCEDURE IF EXISTS sp_add_course_content;
 DELIMITER //
 
 CREATE PROCEDURE sp_add_course_content(
@@ -17,30 +18,37 @@ sp_block: BEGIN
     DECLARE v_topic_sequence SMALLINT;
     DECLARE v_progress_weight INT;
     DECLARE v_duplicate_module INT DEFAULT 0;
+    DECLARE custom_error VARCHAR(255);
 
     -- Error handler
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
-        SELECT 'Database error occurred while adding course content' AS message, 500 AS status_code;
-        RESIGNAL;
+        SELECT JSON_OBJECT(
+            'status', FALSE,
+            'message', COALESCE(custom_error, 'Database error occurred while adding course content')
+        ) AS data;
     END;
 
     START TRANSACTION;
 
-    -- Check if the module already exists
+    -- Check for duplicate module
     SELECT COUNT(*) INTO v_duplicate_module
     FROM dt_learning_modules
     WHERE learning_program_tid = p_learning_program_tid
       AND title = p_module_title;
 
     IF v_duplicate_module > 0 THEN
+        SET custom_error = 'Duplicate module title under this program. Not inserted.';
         ROLLBACK;
-        SELECT 'Duplicate module title under this program. Not inserted.' AS message, 409 AS status_code;
+        SELECT JSON_OBJECT(
+            'status', FALSE,
+            'message', custom_error
+        ) AS data;
         LEAVE sp_block;
     END IF;
 
-    -- Insert the module
+    -- Insert module
     INSERT INTO dt_learning_modules (
         learning_program_tid,
         title,
@@ -52,13 +60,12 @@ sp_block: BEGIN
         p_module_description,
         p_module_sequence
     );
-    
+
     SET v_module_id = LAST_INSERT_ID();
 
-    -- Count topics from JSON
+    -- Count and insert topics
     SET v_topic_count = JSON_LENGTH(p_topics);
 
-    -- Insert topics
     WHILE v_counter < v_topic_count DO
         SET v_topic_title = JSON_UNQUOTE(JSON_EXTRACT(p_topics, CONCAT('$[', v_counter, '].title')));
         SET v_topic_description = JSON_UNQUOTE(JSON_EXTRACT(p_topics, CONCAT('$[', v_counter, '].description')));
@@ -90,28 +97,14 @@ sp_block: BEGIN
 
     COMMIT;
 
-    -- Return success result
-    SELECT 
-        v_module_id AS module_id,
-        'Course content added successfully' AS message,
-        v_topic_count AS topics_added,
-        200 AS status_code;
-
+    -- JSON success response
+    SELECT JSON_OBJECT(
+        'status', TRUE,
+        'data', JSON_OBJECT(
+            'module_id', v_module_id,
+            'module_title', p_module_title,
+            'topics_added', v_topic_count
+        )
+    ) AS data;
 END //
-
 DELIMITER ;
-
-DELIMITER //
-CALL sp_add_course_content(
-  3001,
-  'Triggers in SQL',
-  'Learn about MySQL triggers.',
-  1,
-  JSON_ARRAY(
-    JSON_OBJECT('title','Before Insert Trigger','description','Before insert logic','content','CREATE TRIGGER ...','sequence_number',1,'progress_weight',1),
-    JSON_OBJECT('title','After Delete Trigger','description','After delete logic','content','AFTER DELETE ...','sequence_number',2,'progress_weight',1)
-  )
-);
-
-select * from dt_learning_topics;
-

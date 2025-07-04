@@ -1,10 +1,11 @@
-const express = require('express');
+import express from "express";
+import addEligibilityTemplate from '../../controllers/learningController/addEligibilityController.js';
+import listEligibilityTemplates from '../../controllers/learningController/listEligibilityController.js';
+import updateEligibilityTemplate from '../../controllers/learningController/updateEligibilityController.js';
+import viewEligibilityTemplate from '../../controllers/learningController/viewEligibilityController.js';
+import submitEligibilityResponse from '../../controllers/learningController/eligibilityResponseController.js';
+
 const router = express.Router();
-const addEligibilityTemplate = require('../../controllers/learningController/addEligibilityController');
-const listEligibilityTemplates = require('../../controllers/learningController/listEligibilityController');
-const updateEligibilityTemplate = require('../../controllers/learningController/updateEligibilityController');
-const viewEligibilityTemplate = require('../../controllers/learningController/viewEligibilityController');
-const submitEligibilityResponse = require('../../controllers/learningController/eligibilityResponseController');
 
 router.post('/add-eligibility-template', addEligibilityTemplate);
 router.get('/list-eligibility-template', listEligibilityTemplates);
@@ -12,4 +13,4 @@ router.post('/update-eligibility-template', updateEligibilityTemplate);
 router.get('/view-eligibility-template', viewEligibilityTemplate);
 router.post('/submit-eligibility-response', submitEligibilityResponse);
 
-module.exports = router;
+export default router;

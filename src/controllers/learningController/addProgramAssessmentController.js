@@ -1,4 +1,4 @@
-const { pool } = require("../../config/db");
+import { pool } from "../../config/db.js";
 
 const addProgramAssessment = async (req, res) => {
   try {
@@ -70,4 +70,4 @@ const addProgramAssessment = async (req, res) => {
   }
 };
 
-module.exports = addProgramAssessment;
+export default addProgramAssessment;

@@ -1,6 +1,6 @@
-const db = require('../../config/db');
+import { pool } from "../../config/db.js";
 
-exports.addLearningQuestion = async (req, res) => {
+const addLearningQuestion = async (req, res) => {
   try {
     const { enrollment_tid, topic_tid, question } = req.body;
     if (!enrollment_tid || !topic_tid || !question) {
@@ -8,10 +8,14 @@ exports.addLearningQuestion = async (req, res) => {
     }
     // Pass 6 arguments: 3 IN, 3 OUT (dummy values)
     const params = [enrollment_tid, topic_tid, JSON.stringify(question)];
-    const result = await db.callProcedure('sp_add_learning_question', params);
-    res.json(result[0][0] || {});
+    const result = await pool.query('CALL sp_add_learning_question(?, ?, ?)', params);
+    res.json(result.rows[0] || {});
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });
   }
-}; 
+};
+
+const learningQuestionController = addLearningQuestion;
+
+export default learningQuestionController;

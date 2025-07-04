@@ -1,15 +1,16 @@
-const express = require("express");
-const program_router = express.Router();
-const add_program = require("../../controllers/learningController/addProgramController.js");
-const view_created_programs = require("../../controllers/learningController/listProgramsController.js");
-const view_program = require("../../controllers/learningController/viewProgramController.js");
-const enrollment = require("../../controllers/learningController/enrollmentController.js");
-const updateLearningProgram = require("../../controllers/learningController/updateProgramController.js");
+import express from "express";
+import addProgram  from "../../controllers/learningController/addProgramController.js";
+import view_created_programs from "../../controllers/learningController/listProgramsController.js";
+import view_program from "../../controllers/learningController/viewProgramController.js";
+import enrollment from "../../controllers/learningController/enrollmentController.js";
+import updateLearningProgram from "../../controllers/learningController/updateProgramController.js";
 
-program_router.post("/create-program", add_program);
+const program_router = express.Router();
+
+program_router.post("/create-program", addProgram);
 program_router.get("/list-programs", view_created_programs);
 program_router.get("/view-program", view_program);
 program_router.post("/program-enrollment", enrollment);
 program_router.post("/update-program", updateLearningProgram);
 
-module.exports = program_router;
+export default program_router;

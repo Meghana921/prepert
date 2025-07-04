@@ -1,4 +1,5 @@
-const db = require('../../config/db');
+import { pool } from "../../config/db.js";
+
 
 const listCourses = async (req, res) => {
   try {
@@ -16,11 +17,14 @@ const listCourses = async (req, res) => {
       Number(limit),
       Number(offset)
     ];
-    const result = await db.callProcedure('sp_view_all_learning_courses', params);
+    const [result] = await pool.query('sp_view_all_learning_courses(?,?,?,?,?)', params);
     res.json(result[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });
   }
 }; 
-module.exports = { listCourses };
+
+const coursesController = listCourses;
+
+export default coursesController;

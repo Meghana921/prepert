@@ -1,7 +1,7 @@
-const express = require('express');
+import express from "express";
+import trackProgressController from "../../controllers/learningController/trackProgressController.js";
 const router = express.Router();
-const trackProgressController = require('../../controllers/learningController/trackProgressController');
 
-router.post('/', trackProgressController.trackProgress);
+router.post('/', trackProgressController);
 
-module.exports = router; 
+export default router; 

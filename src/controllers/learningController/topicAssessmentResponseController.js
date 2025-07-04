@@ -1,4 +1,4 @@
-const { pool } = require("../../config/db");
+import { pool } from "../../config/db.js";
 
 const submitTopicAssessment = async (req, res) => {
   try {
@@ -42,4 +42,4 @@ const submitTopicAssessment = async (req, res) => {
   }
 };
 
-module.exports = submitTopicAssessment;
+export default submitTopicAssessment;

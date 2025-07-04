@@ -1,170 +1,305 @@
 # Learning Module API Documentation
 
-**Base URL:** `/api/learning`
+> **Note:** This backend uses ES Modules (ESM) system. All code uses `import`/`export` syntax and `.js` extensions in import paths.
+
+**Base URL:** `http://localhost:3000/api/learning/`
 
 ---
 
-## Programs
+## **🎯 Complete API Testing Sequence**
 
-| Method | Endpoint                | Description                        | Controller Function         |
-|--------|-------------------------|------------------------------------|----------------------------|
-| POST   | `/programs/create-program`      | Create a new program                | addProgramController       |
-| GET    | `/programs/list-programs`       | List all created programs           | listProgramsController     |
-| GET    | `/programs/view-program`        | View a specific program             | viewProgramController      |
-| POST   | `/programs/program-enrollment`  | Enroll in a program                 | enrollmentController       |
-| POST   | `/programs/update-program`      | Update a program                    | updateProgramController    |
+### **Phase 1: Template Creation (Required First)**
+```
+1. Create Eligibility Template → get eligibility_template_id
+2. Create Invite Template → get invite_template_id
+```
 
-### Examples
+### **Phase 2: Program Creation & Setup**
+```
+3. Create Program → use template IDs from Phase 1
+4. Add Course Content → use program_id from Step 3
+5. Create Program Assessment → use program_id from Step 3
+```
 
-#### POST `/programs/create-program`
+### **Phase 3: User Operations**
+```
+6. Submit Eligibility Response → use template_id from Step 1
+7. Enroll in Program → use program_id from Step 3
+8. Track Progress → use enrollment_id from Step 7
+9. Submit Assessment → use assessment_id from Step 5
+10. Download Certificate → use enrollment_id from Step 7
+```
+
+### **Phase 4: Management & Viewing**
+```
+11. List Programs
+12. View Program Details
+13. List Templates
+14. View Assessment Details
+```
+
+---
+
+## **📋 Phase 1: Template Creation**
+
+### **1. Create Eligibility Template**
+**POST** `http://localhost:3000/api/learning/eligibility/add-eligibility-template`
+
 **Request Body:**
 ```json
 {
-  "title": "JavaScript Bootcamp",
-  "description": "Learn JS from scratch",
   "creator_id": 1,
-  "difficulty_level": "Beginner",
-  "price": 100,
-  "access_period_months": 6
-}
-```
-**Response:**
-```json
-{
-  "success": true,
-  "program_id": 123
+  "template_name": "JavaScript Bootcamp Eligibility",
+  "eligibility_questions": [
+    {
+      "question": "Do you have basic programming knowledge?",
+      "deciding_answer": "yes",
+      "sequence_number": 1
+    },
+    {
+      "question": "Are you available for 6 months?",
+      "deciding_answer": "yes",
+      "sequence_number": 2
+    },
+    {
+      "question": "Do you have a computer with internet?",
+      "deciding_answer": "yes",
+      "sequence_number": 3
+    }
+  ]
 }
 ```
 
-#### GET `/programs/list-programs`
-**Response:**
+**Expected Response:**
 ```json
-[
-  {
-    "program_id": 123,
-    "title": "JavaScript Bootcamp",
-    "creator_id": 1
+{
+  "status": true,
+  "data": {
+    "template_id": 55,
+    "template_name": "JavaScript Bootcamp Eligibility"
   },
-  {
-    "program_id": 124,
-    "title": "Python Basics",
-    "creator_id": 2
-  }
-]
+  "message": "Eligibility template created successfully"
+}
 ```
 
-#### GET `/programs/view-program?program_id=123`
-**Response:**
+### **2. Create Invite Template**
+**POST** `http://localhost:3000/api/learning/invite/create-invite-template`
+
+**Request Body:**
 ```json
 {
-  "program_id": 123,
-  "title": "JavaScript Bootcamp",
-  "description": "Learn JS from scratch",
   "creator_id": 1,
-  "difficulty_level": "Beginner",
-  "price": 100,
-  "access_period_months": 6
+  "name": "JavaScript Bootcamp Invitation",
+  "subject": "You're invited to join our JavaScript Bootcamp!",
+  "body": "Dear {{name}},\n\nYou have been invited to join our exclusive JavaScript Bootcamp program.\n\nProgram Details:\n- Duration: 6 months\n- Price: $100\n- Location: Remote\n\nClick here to enroll: {{enrollment_link}}\n\nBest regards,\nPrepert Team"
 }
 ```
 
-#### POST `/programs/program-enrollment`
-**Request Body:**
+**Expected Response:**
 ```json
 {
-  "user_id": 10,
-  "program_id": 123
-}
-```
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Enrolled successfully"
-}
-```
-
-#### POST `/programs/update-program`
-**Request Body:**
-```json
-{
-  "program_id": 123,
-  "title": "Advanced JS Bootcamp"
-}
-```
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Program updated"
+  "status": true,
+  "data": {
+    "template_id": 66,
+    "template_name": "JavaScript Bootcamp Invitation"
+  }
 }
 ```
 
 ---
 
-## Eligibility Templates
+## **📋 Phase 2: Program Creation & Setup**
 
-| Method | Endpoint                        | Description                        | Controller Function                |
-|--------|---------------------------------|------------------------------------|------------------------------------|
-| POST   | `/eligibility/add-eligibility-template`    | Add a new eligibility template     | addEligibilityController           |
-| GET    | `/eligibility/list-eligibility-template`   | List all eligibility templates     | listEligibilityController          |
-| POST   | `/eligibility/update-eligibility-template` | Update an eligibility template     | updateEligibilityController        |
-| GET    | `/eligibility/view-eligibility-template`   | View an eligibility template       | viewEligibilityController          |
-| POST   | `/eligibility/submit-eligibility-response` | Submit eligibility response        | eligibilityResponseController      |
+### **3. Create Learning Program**
+**POST** `http://localhost:3000/api/learning/programs/create-program`
 
-### Examples
-
-#### POST `/eligibility/add-eligibility-template`
 **Request Body:**
 ```json
 {
-  "name": "Graduate Eligibility",
-  "criteria": ["Bachelors Degree", "Minimum 60% marks"]
+  "title": "JavaScript Bootcamp 2024",
+  "description": "Learn JavaScript from scratch to advanced concepts",
+  "creator_id": 1,
+  "difficulty_level": "medium",
+  "image_path": "/images/javascript-bootcamp.jpg",
+  "price": 100.00,
+  "access_period_months": 6,
+  "available_slots": 30,
+  "campus_hiring": false,
+  "sponsored": false,
+  "minimum_score": 70,
+  "experience_from": "0",
+  "experience_to": "2",
+  "locations": "Remote",
+  "employer_name": "Prepert",
+  "regret_message": "Sorry, you are not eligible for this program.",
+  "eligibility_template_id": 55,
+  "invite_template_id": 66,
+  "invitee": [
+    {
+      "name": "Alice Johnson",
+      "email": "alice.johnson@example.com"
+    },
+    {
+      "name": "Bob Smith",
+      "email": "bob.smith@example.com"
+    },
+    {
+      "name": "Carol Davis",
+      "email": "carol.davis@example.com"
+    }
+  ]
 }
 ```
-**Response:**
+
+**Expected Response:**
 ```json
 {
-  "success": true,
-  "template_id": 55
+  "status": true,
+  "data": {
+    "program_id": 123,
+    "program_name": "JavaScript Bootcamp 2024"
+  },
+  "message": "Program created successfully!"
 }
 ```
 
-#### GET `/eligibility/list-eligibility-template`
-**Response:**
-```json
-[
-  { "template_id": 55, "name": "Graduate Eligibility" },
-  { "template_id": 56, "name": "Postgraduate Eligibility" }
-]
-```
+### **4. Add Course Content**
+**POST** `http://localhost:3000/api/learning/course-content/`
 
-#### POST `/eligibility/update-eligibility-template`
 **Request Body:**
 ```json
 {
-  "template_id": 55,
-  "name": "Updated Graduate Eligibility"
-}
-```
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Template updated"
+  "learning_program_tid": 123,
+  "module_title": "JavaScript Fundamentals",
+  "module_description": "Learn the basics of JavaScript programming",
+  "module_sequence": 1,
+  "topics": [
+    {
+      "topic_title": "Introduction to JavaScript",
+      "topic_description": "What is JavaScript and why use it?",
+      "topic_content": "JavaScript is a programming language that enables interactive web pages...",
+      "topic_sequence": 1,
+      "progress_weight": 20
+    },
+    {
+      "topic_title": "Variables and Data Types",
+      "topic_description": "Learn about variables, strings, numbers, and booleans",
+      "topic_content": "Variables are containers for storing data values...",
+      "topic_sequence": 2,
+      "progress_weight": 30
+    },
+    {
+      "topic_title": "Functions",
+      "topic_description": "Creating and using functions in JavaScript",
+      "topic_content": "Functions are reusable blocks of code...",
+      "topic_sequence": 3,
+      "progress_weight": 50
+    }
+  ]
 }
 ```
 
-#### GET `/eligibility/view-eligibility-template?template_id=55`
-**Response:**
+**Expected Response:**
 ```json
 {
-  "template_id": 55,
-  "name": "Graduate Eligibility",
-  "criteria": ["Bachelors Degree", "Minimum 60% marks"]
+  "status": true,
+  "data": {
+    "module_id": 456,
+    "topics_added": 3
+  },
+  "message": "Course content added successfully"
 }
 ```
 
-#### POST `/eligibility/submit-eligibility-response`
+### **5. Create Program Assessment**
+**POST** `http://localhost:3000/api/learning/assessment/program-assessment`
+
+**Request Body:**
+```json
+{
+  "program_id": 123,
+  "title": "JavaScript Fundamentals Assessment",
+  "description": "Test your knowledge of JavaScript basics",
+  "question_count": 5,
+  "passing_score": 70,
+  "questions": [
+    {
+      "question": "What is JavaScript?",
+      "options": {
+        "A": "A markup language",
+        "B": "A programming language",
+        "C": "A styling language",
+        "D": "A database language"
+      },
+      "correct_option": "B",
+      "score": 20
+    },
+    {
+      "question": "How do you declare a variable in JavaScript?",
+      "options": {
+        "A": "var x = 5;",
+        "B": "variable x = 5;",
+        "C": "v x = 5;",
+        "D": "declare x = 5;"
+      },
+      "correct_option": "A",
+      "score": 20
+    },
+    {
+      "question": "What is the correct way to write a function?",
+      "options": {
+        "A": "function myFunction() {}",
+        "B": "func myFunction() {}",
+        "C": "def myFunction() {}",
+        "D": "method myFunction() {}"
+      },
+      "correct_option": "A",
+      "score": 20
+    },
+    {
+      "question": "Which operator is used for assignment?",
+      "options": {
+        "A": "==",
+        "B": "=",
+        "C": "===",
+        "D": "!="
+      },
+      "correct_option": "B",
+      "score": 20
+    },
+    {
+      "question": "How do you add a comment in JavaScript?",
+      "options": {
+        "A": "<!-- comment -->",
+        "B": "// comment",
+        "C": "/* comment */",
+        "D": "Both B and C"
+      },
+      "correct_option": "D",
+      "score": 20
+    }
+  ]
+}
+```
+
+**Expected Response:**
+```json
+{
+  "status": true,
+  "data": {
+    "assessment_id": 789,
+    "total_questions": 5
+  }
+}
+```
+
+---
+
+## **📋 Phase 3: User Operations**
+
+### **6. Submit Eligibility Response**
+**POST** `http://localhost:3000/api/learning/eligibility/submit-eligibility-response`
+
 **Request Body:**
 ```json
 {
@@ -173,363 +308,320 @@
   "response": "Eligible"
 }
 ```
-**Response:**
+
+**Expected Response:**
 ```json
 {
-  "success": true,
-  "message": "Response submitted"
+  "status": true,
+  "data": {
+    "user_id": 10,
+    "template_id": 55,
+    "eligibility_status": "Eligible"
+  },
+  "message": "Eligibility response submitted successfully"
 }
 ```
 
----
+### **7. Enroll in Program**
+**POST** `http://localhost:3000/api/learning/programs/program-enrollment`
 
-## Assessment
-
-| Method | Endpoint                        | Description                        | Controller Function                |
-|--------|---------------------------------|------------------------------------|------------------------------------|
-| POST   | `/assessment/topic-assessment`           | Add a topic assessment             | topicAssessmentController          |
-| POST   | `/assessment/submit-topic-assessment`    | Submit a topic assessment          | topicAssessmentResponseController  |
-
-### Examples
-
-#### POST `/assessment/topic-assessment`
 **Request Body:**
 ```json
 {
-  "program_id": 123,
-  "topic": "Functions",
-  "questions": [
-    { "question": "What is a closure?", "type": "short-answer" }
-  ]
-}
-```
-**Response:**
-```json
-{
-  "success": true,
-  "assessment_id": 77
-}
-```
-
-#### POST `/assessment/submit-topic-assessment`
-**Request Body:**
-```json
-{
-  "assessment_id": 77,
   "user_id": 10,
-  "answers": [
-    { "question_id": 1, "answer": "A closure is..." }
-  ]
-}
-```
-**Response:**
-```json
-{
-  "success": true,
-  "score": 8
-}
-```
-
----
-
-## User
-
-| Method | Endpoint                                  | Description                        | Controller Function         |
-|--------|-------------------------------------------|------------------------------------|----------------------------|
-| GET    | `/user/:user_tid/subscribed-courses`      | List courses a user is subscribed to| userController.listSubscribedCourses |
-
-### Example
-
-#### GET `/user/10/subscribed-courses`
-**Response:**
-```json
-[
-  { "course_id": 1, "name": "JavaScript Bootcamp" },
-  { "course_id": 2, "name": "Python Basics" }
-]
-```
-
----
-
-## Invites
-
-| Method | Endpoint                | Description                        | Controller Function         |
-|--------|-------------------------|------------------------------------|----------------------------|
-| POST   | `/invite/`              | Send an invite                     | invitesController.sendInvite|
-| POST   | `/invites/`             | Send an invite                     | invitesController.sendInvite|
-| POST   | `/invites/redeem`       | Redeem an invite                   | invitesController.redeemInvite|
-
-### Examples
-
-#### POST `/invite/`
-**Request Body:**
-```json
-{
-  "email": "user@example.com",
   "program_id": 123
 }
 ```
-**Response:**
+
+**Expected Response:**
 ```json
 {
-  "success": true,
-  "invite_id": 99
+  "status": true,
+  "data": {
+    "enrollment_id": 101,
+    "user_id": 10,
+    "program_id": 123,
+    "enrollment_date": "2024-01-15T10:30:00Z",
+    "expires_on": "2024-07-15T10:30:00Z"
+  },
+  "message": "Enrolled successfully"
 }
 ```
 
-#### POST `/invites/redeem`
+### **8. Track Progress**
+**POST** `http://localhost:3000/api/learning/track-progress/`
+
 **Request Body:**
 ```json
 {
-  "invite_code": "ABC123"
+  "enrollment_tid": 101,
+  "topic_tid": 1,
+  "status": "completed"
 }
 ```
-**Response:**
+
+**Expected Response:**
 ```json
 {
-  "success": true,
-  "message": "Invite redeemed"
+  "status": true,
+  "data": {
+    "enrollment_id": 101,
+    "progress_percentage": 33,
+    "completed_topics": 1,
+    "total_topics": 3
+  },
+  "message": "Progress updated successfully"
 }
 ```
 
----
+### **9. Submit Assessment**
+**POST** `http://localhost:3000/api/learning/assessment/submit-assessment`
 
-## Learning Questions
-
-| Method | Endpoint                | Description                        | Controller Function         |
-|--------|-------------------------|------------------------------------|----------------------------|
-| POST   | `/learning-question/`   | Add a learning question            | learningQuestionController.addLearningQuestion |
-
-### Example
-
-#### POST `/learning-question/`
-**Request Body:**
-```json
-{
-  "program_id": 123,
-  "question": "Explain event loop in JS?"
-}
-```
-**Response:**
-```json
-{
-  "success": true,
-  "question_id": 5
-}
-```
-
----
-
-## Track Progress
-
-| Method | Endpoint                | Description                        | Controller Function         |
-|--------|-------------------------|------------------------------------|----------------------------|
-| POST   | `/track-progress/`      | Track learning progress            | trackProgressController.trackProgress |
-
-### Example
-
-#### POST `/track-progress/`
 **Request Body:**
 ```json
 {
   "user_id": 10,
   "program_id": 123,
-  "progress": 80
+  "responses": [
+    {
+      "question_id": 1,
+      "answer": "B"
+    },
+    {
+      "question_id": 2,
+      "answer": "A"
+    },
+    {
+      "question_id": 3,
+      "answer": "A"
+    },
+    {
+      "question_id": 4,
+      "answer": "B"
+    },
+    {
+      "question_id": 5,
+      "answer": "D"
+    }
+  ]
 }
 ```
-**Response:**
+
+**Expected Response:**
 ```json
 {
-  "success": true,
-  "message": "Progress updated"
+  "status": true,
+  "data": {
+    "attempt_id": 202,
+    "total_score": 100,
+    "passing_score": 70,
+    "passed": true,
+    "percentage": 100
+  },
+  "message": "Assessment submitted successfully"
 }
 ```
 
----
+### **10. Download Certificate (When 100% Complete)**
+**POST** `http://localhost:3000/api/learning/get-certificate/get-certificate`
 
-## Company Subscribers
-
-| Method | Endpoint                | Description                        | Controller Function         |
-|--------|-------------------------|------------------------------------|----------------------------|
-| GET    | `/company-subscribers/` | View company subscribers           | companySubscribersController.viewCompanySubscribers |
-
-### Example
-
-#### GET `/company-subscribers/`
-**Response:**
-```json
-[
-  { "user_id": 10, "name": "Alice" },
-  { "user_id": 11, "name": "Bob" }
-]
-```
-
----
-
-## Courses
-
-| Method | Endpoint                | Description                        | Controller Function         |
-|--------|-------------------------|------------------------------------|----------------------------|
-| GET    | `/courses/`             | List all courses                   | coursesController.listCourses |
-
-### Example
-
-#### GET `/courses/`
-**Response:**
-```json
-[
-  { "course_id": 1, "name": "JavaScript Bootcamp" },
-  { "course_id": 2, "name": "Python Basics" }
-]
-```
-
----
-
-## Course Content
-
-| Method | Endpoint                | Description                        | Controller Function         |
-|--------|-------------------------|------------------------------------|----------------------------|
-| POST   | `/course-content/`      | Add course content                 | courseContentController.addCourseContent |
-| PUT    | `/course-content/`      | Edit course content                | courseContentController.editCourseContent |
-| DELETE | `/course-content/`      | Delete course content              | courseContentController.deleteCourseContent |
-
-### Examples
-
-#### POST `/course-content/`
 **Request Body:**
 ```json
 {
-  "course_id": 1,
-  "title": "Introduction",
-  "content": "Welcome to the course!"
-}
-```
-**Response:**
-```json
-{
-  "success": true,
-  "content_id": 101
+  "enrollment_tid": 101
 }
 ```
 
-#### PUT `/course-content/`
-**Request Body:**
+**Expected Response:**
 ```json
 {
-  "content_id": 101,
-  "title": "Intro Updated"
-}
-```
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Content updated"
-}
-```
-
-#### DELETE `/course-content/`
-**Request Body:**
-```json
-{
-  "content_id": 101
-}
-```
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Content deleted"
+  "status": true,
+  "data": {
+    "certificate_url": "/certificates/cert_101.pdf",
+    "download_link": "http://localhost:3000/api/learning/certificates/download/cert_101.pdf",
+    "completion_date": "2024-01-20T15:45:00Z"
+  },
+  "message": "Certificate generated successfully"
 }
 ```
 
 ---
 
-## Course Content With Progress
+## **📋 Phase 4: Management & Viewing**
 
-| Method | Endpoint                | Description                        | Controller Function         |
-|--------|-------------------------|------------------------------------|----------------------------|
-| GET    | `/course-content-with-progress/` | View course content with progress | courseContentWithProgressController.viewCourseContentWithProgress |
+### **11. List All Programs**
+**GET** `http://localhost:3000/api/learning/programs/list-programs`
 
-### Example
-
-#### GET `/course-content-with-progress/`
-**Response:**
+**Expected Response:**
 ```json
-[
-  { "content_id": 101, "title": "Introduction", "progress": 100 },
-  { "content_id": 102, "title": "Advanced", "progress": 60 }
-]
+{
+  "status": true,
+  "data": [
+    {
+      "program_id": 123,
+      "title": "JavaScript Bootcamp 2024",
+      "description": "Learn JavaScript from scratch to advanced concepts",
+      "creator_id": 1,
+      "difficulty_level": "medium",
+      "price": 100.00,
+      "available_slots": 27,
+      "created_at": "2024-01-10T09:00:00Z"
+    }
+  ]
+}
+```
+
+### **12. View Specific Program**
+**GET** `http://localhost:3000/api/learning/programs/view-program?program_id=123`
+
+**Expected Response:**
+```json
+{
+  "status": true,
+  "data": {
+    "program_id": 123,
+    "title": "JavaScript Bootcamp 2024",
+    "description": "Learn JavaScript from scratch to advanced concepts",
+    "creator_id": 1,
+    "difficulty_level": "medium",
+    "price": 100.00,
+    "access_period_months": 6,
+    "available_slots": 27,
+    "campus_hiring": false,
+    "sponsored": false,
+    "minimum_score": 70,
+    "experience_from": "0",
+    "experience_to": "2",
+    "locations": "Remote",
+    "employer_name": "Prepert",
+    "eligibility_template_id": 55,
+    "invite_template_id": 66,
+    "created_at": "2024-01-10T09:00:00Z"
+  }
+}
+```
+
+### **13. List Eligibility Templates**
+**GET** `http://localhost:3000/api/learning/eligibility/list-eligibility-template?creator_id=1`
+
+**Expected Response:**
+```json
+{
+  "status": true,
+  "data": [
+    {
+      "template_id": 55,
+      "template_name": "JavaScript Bootcamp Eligibility"
+    }
+  ]
+}
+```
+
+### **14. List Invite Templates**
+**GET** `http://localhost:3000/api/learning/invite/list-invite-template?creator_id=1`
+
+**Expected Response:**
+```json
+{
+  "status": true,
+  "data": [
+    {
+      "template_id": 66,
+      "template_name": "JavaScript Bootcamp Invitation"
+    }
+  ]
+}
+```
+
+### **15. View Program Assessment**
+**GET** `http://localhost:3000/api/learning/assessment/view-program-assessment?program_id=123`
+
+**Expected Response:**
+```json
+{
+  "status": true,
+  "data": {
+    "assessment_id": 789,
+    "title": "JavaScript Fundamentals Assessment",
+    "description": "Test your knowledge of JavaScript basics",
+    "question_count": 5,
+    "passing_score": 70,
+    "questions": [
+      {
+        "question_id": 1,
+        "question": "What is JavaScript?",
+        "options": {
+          "A": "A markup language",
+          "B": "A programming language",
+          "C": "A styling language",
+          "D": "A database language"
+        },
+        "correct_option": "B",
+        "score": 20
+      }
+    ],
+    "created_at": "2024-01-10T10:00:00Z"
+  }
+}
 ```
 
 ---
 
-## Invite Templates
+## **🔧 Postman Testing Setup**
 
-| Method | Endpoint                        | Description                        | Controller Function                |
-|--------|---------------------------------|------------------------------------|------------------------------------|
-| GET    | `/invite-template/list-invite-template`   | List all invite templates          | listInviteTemplateController       |
-| POST   | `/invite-template/add-invite-template`    | Add a new invite template          | addInviteTemplateController        |
-| POST   | `/invite-template/update-invite-template` | Update an invite template          | updateInviteTemplateController     |
-| GET    | `/invite-template/view-invite-template`   | View an invite template            | viewInviteTemplateController       |
-
-### Examples
-
-#### GET `/invite-template/list-invite-template`
-**Response:**
-```json
-[
-  { "template_id": 1, "name": "Default Invite" },
-  { "template_id": 2, "name": "Special Invite" }
-]
+### **Environment Variables (Set in Postman)**
+```
+base_url: http://localhost:3000/api/learning
+creator_id: 1
+user_id: 10
 ```
 
-#### POST `/invite-template/add-invite-template`
-**Request Body:**
-```json
-{
-  "name": "Special Invite",
-  "content": "You are invited!"
-}
+### **Testing Order:**
+1. **Phase 1:** Create templates (Steps 1-2)
+2. **Phase 2:** Create program and content (Steps 3-5)
+3. **Phase 3:** Test user operations (Steps 6-10)
+4. **Phase 4:** Test management operations (Steps 11-15)
+
+### **Headers for All Requests:**
 ```
-**Response:**
-```json
-{
-  "success": true,
-  "template_id": 2
-}
+Content-Type: application/json
+Accept: application/json
 ```
 
-#### POST `/invite-template/update-invite-template`
-**Request Body:**
+### **Testing Tips:**
+- **Save IDs:** Store returned IDs (template_id, program_id, enrollment_id) as variables
+- **Check Status:** Always verify `status: true` in responses
+- **Error Handling:** Test with invalid data to see error responses
+- **Dependencies:** Follow the exact sequence - don't skip steps
+
+---
+
+## **🚨 Error Response Examples**
+
+### **Missing Dependencies:**
 ```json
 {
-  "template_id": 2,
-  "name": "Special Invite Updated"
-}
-```
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Template updated"
+  "status": false,
+  "message": "Eligibility template not found"
 }
 ```
 
-#### GET `/invite-template/view-invite-template?template_id=2`
-**Response:**
+### **Invalid Data:**
 ```json
 {
-  "template_id": 2,
-  "name": "Special Invite",
-  "content": "You are invited!"
+  "status": false,
+  "message": "Invalid program_id provided"
+}
+```
+
+### **Duplicate Entry:**
+```json
+{
+  "status": false,
+  "message": "JavaScript Bootcamp 2024 program already exists"
 }
 ```
 
 ---
 
-**General Notes:**
-- All endpoints are prefixed with `/api/learning/` as per your `server.js`.
-- Controller function names are inferred from the route files and may need to be confirmed for exact handler names.
-- For endpoints with dynamic parameters (e.g., `:user_tid`), replace with actual values in requests.
-- All request/response examples are in JSON and ready for use in Postman. 
+**🎉 Your API is now ready for comprehensive Postman testing with proper sequence and dummy data!** 

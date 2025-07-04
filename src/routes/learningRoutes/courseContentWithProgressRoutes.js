@@ -1,7 +1,7 @@
-const express = require('express');
+import express from "express";
+import courseContentWithProgressController from '../../controllers/learningController/courseContentWithProgressController.js';
 const router = express.Router();
-const courseContentWithProgressController = require('../../controllers/learningController/courseContentWithProgressController');
 
-router.get('/', courseContentWithProgressController.viewCourseContentWithProgress);
+router.get('/', courseContentWithProgressController);
 
-module.exports = router; 
+export default router; 

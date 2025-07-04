@@ -1,4 +1,4 @@
-const { pool } = require("../../config/db");
+import { pool } from "../../config/db.js";
 
 const addInviteTemplate = async (req, res) => {
   try {
@@ -43,4 +43,4 @@ const addInviteTemplate = async (req, res) => {
   }
 };
 
-module.exports = addInviteTemplate;
+export default addInviteTemplate;

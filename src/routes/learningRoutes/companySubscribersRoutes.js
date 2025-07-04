@@ -1,7 +1,7 @@
-const express = require('express');
+import express from "express";
+import companySubscribersController from "../../controllers/learningController/companySubscribersController.js";
 const router = express.Router();
-const companySubscribersController = require('../../controllers/learningController/companySubscribersController');
 
-router.get('/', companySubscribersController.viewCompanySubscribers);
+router.get('/', companySubscribersController);
 
-module.exports = router; 
+export default router; 

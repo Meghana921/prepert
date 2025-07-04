@@ -1,96 +1,125 @@
-DROP PROCEDURE IF EXISTS add_eligibility_template;
-
 DELIMITER //
-
+DROP PROCEDURE IF EXISTS add_eligibility_template;
 CREATE PROCEDURE add_eligibility_template (
-    IN in_creator_id BIGINT,
-    IN in_template_name VARCHAR(100),
-    IN in_eligibility_questions JSON
+    IN creator_id           BIGINT,
+    IN template_name        VARCHAR(100),
+    IN eligibility_questions JSON
 )
 BEGIN
     DECLARE custom_error VARCHAR(255) DEFAULT NULL;
-    DECLARE eligibility_template_tid BIGINT;
+    DECLARE template_id BIGINT;
     DECLARE duplicate_count INT DEFAULT 0;
-
-    -- Error Handler
+    DECLARE question_count INT DEFAULT 0;
+    
+    -- Error handler rolls back and returns JSON under alias "status"
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
+        GET DIAGNOSTICS CONDITION 1 custom_error = MESSAGE_TEXT;
         SELECT JSON_OBJECT(
             'status', FALSE,
             'message', COALESCE(custom_error, 'An error occurred while inserting template')
-        ) AS data;
+        ) AS status;
     END;
-
+    
     START TRANSACTION;
-
-    -- Check for duplicate template name by creator
+    
+    -- Input validation
+    IF creator_id IS NULL OR creator_id <= 0 THEN
+        SET custom_error = 'Invalid creator_id provided';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = custom_error;
+    END IF;
+    
+    IF template_name IS NULL OR TRIM(template_name) = '' THEN
+        SET custom_error = 'Template name cannot be empty';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = custom_error;
+    END IF;
+    
+    IF eligibility_questions IS NULL OR JSON_LENGTH(eligibility_questions) = 0 THEN
+        SET custom_error = 'At least one eligibility question is required';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = custom_error;
+    END IF;
+    
+    -- Check if template with same name already exists for this creator
     IF EXISTS (
-        SELECT 1
-        FROM dt_eligibility_templates
-        WHERE creator_tid = in_creator_id AND name = in_template_name
+        SELECT 1 
+        FROM eligibility_templates 
+        WHERE creator_id = creator_id 
+          AND template_name = template_name
     ) THEN
         SET custom_error = CONCAT(
-            in_template_name,
-            ' - template already exists! You can view and edit template'
+            template_name,
+            ' – template already exists! You can view and edit it.'
         );
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = custom_error;
     END IF;
-
-    -- Insert new template
-    INSERT INTO dt_eligibility_templates (creator_tid, name)
-    VALUES (in_creator_id, in_template_name);
-
-    SET eligibility_template_tid = LAST_INSERT_ID();
-
-    -- Insert all questions
-    INSERT INTO dt_eligibility_questions (
-        template_tid,
+    
+    -- Insert template
+    INSERT INTO eligibility_templates (creator_id, template_name)
+    VALUES (creator_id, template_name);
+    
+    SET template_id = LAST_INSERT_ID();
+    
+    -- Insert questions
+    INSERT INTO eligibility_questions (
+        template_id,
         question,
         deciding_answer,
         sequence_number
     )
     SELECT
-        eligibility_template_tid,
+        template_id,
         q.question,
         q.deciding_answer,
         q.sequence_number
-    FROM JSON_TABLE (
-        in_eligibility_questions,
-        '$[*]' COLUMNS (
-            question TEXT PATH '$.question',
-            deciding_answer ENUM('yes','no') PATH '$.deciding_answer',
-            sequence_number INT PATH '$.sequence_number',
-            question_id FOR ORDINALITY
+    FROM JSON_TABLE(
+        eligibility_questions,
+        '$[*]' : COLUMNS (
+            question           TEXT        PATH '$.question',
+            deciding_answer    VARCHAR(3)  PATH '$.deciding_answer',
+            sequence_number    INT         PATH '$.sequence_number'
         )
     ) AS q
-    WHERE q.question IS NOT NULL;
-
-    -- Check for duplicate questions
+    WHERE
+        q.question IS NOT NULL
+        AND TRIM(q.question) <> ''
+        AND q.deciding_answer IS NOT NULL
+        AND q.sequence_number IS NOT NULL;
+    
+    -- Check if any questions were actually inserted
+    SELECT COUNT(*) INTO question_count
+    FROM eligibility_questions
+    WHERE template_id = template_id;
+    
+    IF question_count = 0 THEN
+        SET custom_error = 'No valid questions were found in the provided data';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = custom_error;
+    END IF;
+    
+    -- Check for duplicate questions within the same template
     SELECT COUNT(*) INTO duplicate_count
     FROM (
         SELECT question
-        FROM dt_eligibility_questions
-        WHERE template_tid = eligibility_template_tid
+        FROM eligibility_questions
+        WHERE template_id = template_id
         GROUP BY question
         HAVING COUNT(*) > 1
-    ) AS duplicates;
-
+    ) AS dup;
+    
     IF duplicate_count > 0 THEN
         SET custom_error = 'Duplicate questions found in the template';
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = custom_error;
     END IF;
-
+    
     COMMIT;
-
-    -- Return final JSON response
+    
+    -- Success: return JSON under alias "status"
     SELECT JSON_OBJECT(
         'status', TRUE,
         'data', JSON_OBJECT(
-            'template_id', eligibility_template_tid,
-            'template_name', in_template_name
+            'template_id', template_id,
+            'template_name', template_name
         )
-    ) AS data;
+    ) AS status;
 END //
-
 DELIMITER ;

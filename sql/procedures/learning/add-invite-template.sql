@@ -3,8 +3,7 @@ DROP PROCEDURE IF EXISTS add_invite_template;
 DELIMITER $$
 
 CREATE PROCEDURE add_invite_template(
-  IN in_creator_tid BIGINT,
-  IN in_program_id BIGINT,         -- (Note: This is accepted but not used – you may remove it if not needed)
+  IN in_creator_tid BIGINT,   
   IN in_name VARCHAR(100),
   IN in_subject VARCHAR(255),
   IN in_body TEXT

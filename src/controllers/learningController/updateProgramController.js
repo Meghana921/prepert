@@ -1,4 +1,4 @@
-const { pool } = require("../../config/db");
+import { pool } from "../../config/db.js";
 
 const updateLearningProgram = async (req, res) => {
   try {
@@ -75,4 +75,4 @@ const updateLearningProgram = async (req, res) => {
   }
 };
 
-module.exports = updateLearningProgram;
+export default updateLearningProgram;

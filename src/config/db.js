@@ -1,5 +1,6 @@
-const mysql = require("mysql2/promise");
-require("dotenv").config();
+import mysql from "mysql2/promise";
+import dotenv from "dotenv";
+dotenv.config();
 
 const pool = mysql.createPool({
   host: process.env.HOST_NAME || "localhost",
@@ -23,4 +24,4 @@ const testConnection = async () => {
   }
 };
 
-module.exports = { pool, testConnection };
+export { pool , testConnection};

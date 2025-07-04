@@ -1,4 +1,4 @@
-const { pool } = require("../../config/db");
+import { pool } from "../../config/db.js";
 
 const updateEligibilityTemplate = async (req, res) => {
   try {
@@ -45,4 +45,4 @@ const updateEligibilityTemplate = async (req, res) => {
   }
 };
 
-module.exports = updateEligibilityTemplate;
+export default updateEligibilityTemplate;

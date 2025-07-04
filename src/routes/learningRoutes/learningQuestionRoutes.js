@@ -1,7 +1,7 @@
-const express = require('express');
+import express from "express";
+import learningQuestionController from "../../controllers/learningController/learningQuestionController.js";
 const router = express.Router();
-const learningQuestionController = require('../../controllers/learningController/learningQuestionController');
 
-router.post('/', learningQuestionController.addLearningQuestion);
+router.post('/', learningQuestionController);
 
-module.exports = router; 
+export default router; 

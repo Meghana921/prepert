@@ -1,4 +1,4 @@
-const { pool } = require("../../config/db");
+import { pool } from "../../config/db.js";
 
 const viewCreatedPrograms = async (req, res) => {
   try {
@@ -17,4 +17,4 @@ const viewCreatedPrograms = async (req, res) => {
   }
 };
 
-module.exports = viewCreatedPrograms;
+export default viewCreatedPrograms;

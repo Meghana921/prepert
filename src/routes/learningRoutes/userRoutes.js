@@ -1,7 +1,7 @@
-const express = require('express');
+import express from "express";
+import userController from "../../controllers/learningController/userController.js";
 const router = express.Router();
-const userController = require('../../controllers/learningController/userController');
 
-router.get('/:user_tid/subscribed-courses', userController.listSubscribedCourses);
+router.get('/:user_tid/subscribed-courses', userController);
 
-module.exports = router; 
+export default router; 

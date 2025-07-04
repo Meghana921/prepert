@@ -1,20 +1,20 @@
-const express = require('express');
-const router = express.Router();
-const addTopicAssessment = require('../../controllers/learningController/topicAssessmentController');
-const submitTopicAssessment = require('../../controllers/learningController/topicAssessmentResponseController');
-const addProgramAssessment = require('../../controllers/learningController/addProgramAssessmentController');
-const viewProgramassessment = require('../../controllers/learningController/viewProgramAssessmentController');
-const submitProgramAssessment = require('../../controllers/learningController/programAssessmentResponseController');
-const editProgramAssessment = require('../../controllers/learningController/editProgramAssessment');
+import express from "express";
+import addTopicAssessment from '../../controllers/learningController/topicAssessmentController.js';
+import submitTopicAssessment from '../../controllers/learningController/topicAssessmentResponseController.js';
+import addProgramAssessment from '../../controllers/learningController/addProgramAssessmentController.js';
+import viewProgramassessment from '../../controllers/learningController/viewProgramAssessmentController.js';
+import submitProgramAssessment from '../../controllers/learningController/programAssessmentResponseController.js';
+import editProgramAssessment from '../../controllers/learningController/editProgramAssessment.js';
 
+const router = express.Router();
 
 router.post('/topic-assessment', addTopicAssessment);
 router.post('/submit-topic-assessment', submitTopicAssessment);
-router.post('/program-assessment',addProgramAssessment);
-router.get('/view-program-assesment',viewProgramassessment);
-router.post('/submit-program-assessment-response',submitProgramAssessment);
-router.post('/edit-program-assessment',editProgramAssessment);
+router.post('/add-program-assessment', addProgramAssessment);
+router.get('/view-program-assessment', viewProgramassessment);
+router.post('/submit-program-assessment', submitProgramAssessment);
+router.post('/edit-program-assessment', editProgramAssessment);
 
-module.exports = router;
+export default router;
 
 

@@ -1,5 +1,5 @@
-const { pool } = require("../../config/db");
-const sendEmail = require("../../utils/sendEmail");
+import { pool } from "../../config/db.js";
+import sendEmail from "../../utils/sendEmail.js";
 
 const addProgram = async (req, res) => {
   try {
@@ -66,25 +66,30 @@ const addProgram = async (req, res) => {
           `CALL get_email_template(?)`,
           [in_invite_template_id]
         );
-        if (emailTemplateResult[0][0].message) {
-          return res.status(400).json({ error: emailTemplateResult[0][0] });
+        
+        // Use the data object directly (no JSON.parse)
+        let templateData = emailTemplateResult[0][0].data;
+        if (typeof templateData === 'string') {
+          templateData = JSON.parse(templateData);
+        }
+        
+        if (!templateData.status) {
+          return res.status(400).json({ error: templateData.message });
         }
 
-        // Assuming you have an email sending service/function
+        // Send email with the template content
         await sendEmail({
           to: invitee.email,
           name: invitee.name,
           programTitle: in_title,
-          templateContent: emailTemplateResult[0][0].template_content
+          templateContent: templateData.template_content
         });
       }
     }
 
-
     if (result[0]?.[0]?.message) {
       return res.status(400).json({ error: result[0][0] });
     }
-
 
     res.status(201).json({ data: result[0][0], status: true, message: "Program created successfully!" });
   } catch (error) {
@@ -96,4 +101,4 @@ const addProgram = async (req, res) => {
   }
 };
 
-module.exports = addProgram;
+export default addProgram;

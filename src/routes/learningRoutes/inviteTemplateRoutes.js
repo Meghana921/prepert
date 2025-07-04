@@ -1,13 +1,14 @@
-const express = require('express');
-const router = express.Router();
-const addInviteTemplate = require('../../controllers/learningController/addInviteTemplateController');
-const listInviteTemplates = require('../../controllers/learningController/listInviteTemplateController');
-const updateInviteTemplate = require('../../controllers/learningController/updateInviteTemplateController');
-const viewInviteTemplate = require('../../controllers/learningController/viewInviteTemplateController');
+import express from "express";
+import addInviteTemplate from '../../controllers/learningController/addInviteTemplateController.js';
+import listInviteTemplates from '../../controllers/learningController/listInviteTemplateController.js';
+import updateInviteTemplate from '../../controllers/learningController/updateInviteTemplateController.js';
+import viewInviteTemplate from '../../controllers/learningController/viewInviteTemplateController.js';
 
-router.get('/list-invite-template', listInviteTemplates);
+const router = express.Router();
+
 router.post('/add-invite-template', addInviteTemplate);
+router.get('/list-invite-template', listInviteTemplates);
 router.post('/update-invite-template', updateInviteTemplate);
 router.get('/view-invite-template', viewInviteTemplate);
 
-module.exports = router;
+export default router;

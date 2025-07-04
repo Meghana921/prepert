@@ -55,7 +55,7 @@ CREATE TABLE dt_learning_topics (
     module_tid BIGINT UNSIGNED NOT NULL,
     title VARCHAR(100) NOT NULL,
     content_type ENUM('text', 'video', 'interactive') NOT NULL DEFAULT 'text',
-    description TEXT,
+    description TEXT,		
     content TEXT COMMENT 'Actual content or reference to content',
     sequence_number SMALLINT NOT NULL COMMENT 'Order of the topic',
     progress_weight INT DEFAULT 1 COMMENT 'Weight in progress calculations',

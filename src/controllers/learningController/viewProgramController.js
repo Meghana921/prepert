@@ -1,6 +1,6 @@
-const { pool } = require("../../config/db");
+import { pool } from "../../config/db.js";
 
-const view_program = async (req, res) => {
+const viewProgramController = async (req, res) => {
   try {
     const { creator_id, program_id } = req.body;
 
@@ -32,4 +32,5 @@ const view_program = async (req, res) => {
     });
   }
 };
-module.exports = view_program;
+
+export default viewProgramController;

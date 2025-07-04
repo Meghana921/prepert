@@ -2,9 +2,9 @@ import { pool } from "../../config/db.js";
 
 const viewInviteTemplate = async (req, res) => {
   try {
-    const { template_id } = req.body;
+    const { template_tid :in_template_id } = req.body;
 
-    if (!template_id) {
+    if (!in_template_id) {
       return res.status(400).json({
         status: false,
         error: "Template ID is required"
@@ -13,35 +13,45 @@ const viewInviteTemplate = async (req, res) => {
 
     const [result] = await pool.query(
       "CALL view_invite_template(?)",
-      [template_id]
+      [in_template_id]
     );
 
 
-    if (result[0]?.[0]?.message) {
+    // Extract the returned JSON data
+    const dataJson = result[0]?.[0]?.data;
+
+    // If result is null or not found
+    if (!dataJson) {
       return res.status(404).json({
         status: false,
-        error: result[0][0].message
+        error: "Template not found",
       });
     }
-
-
-    if (result[0][0]) {
+    // If successful, return the response data
+    else if (dataJson) {
       return res.status(200).json({
         status: true,
-        data: result[0][0],
-        message: "Template retrieved successfully"
+        data: dataJson,
+        message: "Template retrieved successfully",
       });
     }
 
-
+    // If response format was not as expected
+    else {
+      return res.status(500).json({
+        status: false,
+        error: "Unexpected response from stored procedure"
+      });
+    }
   } catch (error) {
-    console.error("Error in viewInviteTemplate:", error);
+    console.error("Error in viewEligibilityTemplate:", error);
     return res.status(500).json({
       status: false,
-      error: "Internal server error",
-      details: error.message
+      error: error.message,
     });
   }
 };
+
+  
 
 export default viewInviteTemplate;

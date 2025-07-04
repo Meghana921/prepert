@@ -19,8 +19,8 @@ const app = express();
 app.use(express.json());
 
 // Learning module routes
-app.use('/api/learning/programs', programRoutes);
-app.use('/api/learning/eligibility', eligibilityTemplateRoutes);
+app.use('/learning', programRoutes);
+app.use('/learning', eligibilityTemplateRoutes);
 app.use('/api/learning/assessment', assessmentRoutes);
 app.use('/api/learning/user', userRoutes);
 app.use('/api/learning/learning-question', learningQuestionRoutes);
@@ -29,7 +29,7 @@ app.use('/api/learning/company-subscribers', companySubscribersRoutes);
 app.use('/api/learning/courses', coursesRoutes);
 app.use('/api/learning/course-content', courseContentRoutes);
 app.use('/api/learning/course-content-with-progress', courseContentWithProgressRoutes);
-app.use('/api/learning/invite-template', inviteTemplateRoutes);
+app.use('/learning', inviteTemplateRoutes);
 app.use('/api/learning/get-certificate', getCertificateRoutes);
 
 app.listen(3000);

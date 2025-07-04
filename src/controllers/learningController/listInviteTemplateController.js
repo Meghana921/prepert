@@ -3,15 +3,40 @@ import { pool } from "../../config/db.js";
 
 const listInviteTemplates = async (req, res) => {
   try {
-    const { creator_id } = req.body;
+    const { creator_tid:creator_id } = req.body;
+    if (!creator_id){
+      return res.status().json({
+        success:false,
+        error:"Moissing required fields!"
+      })
+    }
     const [result] = await pool.query("CALL list_invite_template(?)", [
       creator_id
     ]);
-    res.status(200).json({ data: result[0], status: true, message: "Templates fetched successfully" });
+
+   // Extract the data object returned by the stored procedure
+    const dataResult = result[0][0]?.data;
+
+    // If the 'templates' array is empty, return a "not found" response
+    if (dataResult.templates.length==0) {
+      return res.status(200).json({
+        status: false,
+        error: "No templates found!",
+      });
+    }
+    else {
+      // Return the templates if found, with a success message
+      return res.status(200).json({
+        data: dataResult,
+        status: true,
+        message: "Templates fetched successfully!",
+      });
+    };
   } catch (error) {
+    // Catch and return internal server errors
     return res.status(500).json({
-      message: "Failed to fetch template due to a server error.",
-      details: error.message,
+      status: false,
+      error: error.message,
     });
   }
 };

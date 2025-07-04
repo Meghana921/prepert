@@ -2,7 +2,7 @@ import { pool } from "../../config/db.js";
 
 const submitEligibilityResponse = async (req, res) => {
   try {
-    const { user_id: in_user_id, program_id: in_program_id, question: in_questions } = req.body;
+    const { user_tid: in_user_id, program_tid: in_program_id, questions: in_questions } = req.body;
 
 
     if (!in_user_id || !in_program_id || !in_questions) {
@@ -14,32 +14,28 @@ const submitEligibilityResponse = async (req, res) => {
     }
 
 
-    const [results] = await pool.query(
+    const [result] = await pool.query(
       'CALL eligibility_response(?, ?, ?)',
       [in_user_id, in_program_id, JSON.stringify(in_questions)]
     );
-    console.log(results)
+    console.log(result)
 
-    if (results[0] && results[0][0] && results[0][0].error) {
+    if (results[0]?.[0]?.message) {
       return res.status(409).json({
-        error: results[0][0].error
+        status:true,
+        error: result[0][0].message
       });
     }
 
-
-    const responseData = results[0][0];
     return res.status(201).json({
-      data: {
-        passed: responseData.passed,
-        message: responseData.message,
-      },
+      data:result[0][0],
       status:true
     });
 
   } catch (error) {
     return res.status(500).json({
-      error: "Internal server error",
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      status:true,
+      error: error.message
     });
   }
 };

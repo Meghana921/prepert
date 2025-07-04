@@ -3,16 +3,14 @@ import { pool } from "../../config/db.js";
 const updateInviteTemplate = async (req, res) => {
   try {
     const {
-      creator_tid: in_creator_tid,
-      template_id: in_template_id,
+      template_tid: in_template_id,
       template_name: in_new_name,
       subject: in_new_subject,
       body: in_new_body,
     } = req.body;
 
-   
+
     if (
-      !in_creator_tid ||
       !in_template_id ||
       !in_new_name ||
       !in_new_subject ||
@@ -21,13 +19,13 @@ const updateInviteTemplate = async (req, res) => {
       return res.status(400).json({
         status: false,
         error:
-          "Missing required fields (creator_tid, template_id,template_name, subject, body)",
+          "Missing required fields !",
       });
     }
 
     const [result] = await pool.query(
-      "CALL update_invite_template(?, ?, ?, ?,?)",
-      [in_creator_tid, in_template_id, in_new_name, in_new_subject, in_new_body]
+      "CALL update_invite_template(?, ?, ?,?)",
+      [ in_template_id, in_new_name, in_new_subject, in_new_body]
     );
 
     if (result[0]?.[0]?.message) {
@@ -37,19 +35,24 @@ const updateInviteTemplate = async (req, res) => {
       });
     }
 
-    if (result[0]?.[0]?.data) {
+    else if (result[0]?.[0]?.data) {
       return res.status(200).json({
         data: result[0][0].data,
         status: true,
         message: "Template updated successfully!",
       });
     }
+    else {
+      return res.status(500).json({
+        status: false,
+        error: "Unexpected response from stored procedure"
+      })
+    }
   } catch (error) {
     console.error("Error in updateInviteTemplate:", error);
     return res.status(500).json({
       status: false,
-      error: "Internal server error",
-      details: error.message,
+      error: error.message
     });
   }
 };

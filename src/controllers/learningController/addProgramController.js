@@ -6,7 +6,7 @@ const addProgram = async (req, res) => {
     const {
       title:in_title,
       description:in_description,
-      creator_id:in_creator_id,
+      creator_tid:in_creator_id,
       difficulty_level:in_difficulty_level,
       image_path:in_image_path,
       price:in_price,
@@ -20,8 +20,8 @@ const addProgram = async (req, res) => {
       locations:in_locations,
       employer_name:in_employer_name,
       regret_message:in_regret_message,
-      eligibility_template_id:in_eligibility_template_id,
-      invite_template_id:in_invite_template_id,
+      eligibility_template_tid:in_eligibility_template_id,
+      invite_template_tid:in_invite_template_id,
       invitee:in_invitee,
     } = req.body;
 

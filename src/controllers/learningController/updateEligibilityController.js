@@ -2,9 +2,9 @@ import { pool } from "../../config/db.js";
 
 const updateEligibilityTemplate = async (req, res) => {
   try {
-    const { template_id, template_name, eligibility_questions } = req.body;
+    const { template_tid: in_template_id, template_name: in_template_name, eligibility_questions: in_eligibility_questions } = req.body;
 
-    if (!template_id || !template_name || !eligibility_questions) {
+    if (!in_template_id || !in_template_name || !in_eligibility_questions) {
       return res.status(400).json({
         status: false,
         error: "Missing required fields",
@@ -13,34 +13,38 @@ const updateEligibilityTemplate = async (req, res) => {
 
     const [result] = await pool.query(
       "CALL update_eligibility_template(?, ?, ?)",
-      [template_id, template_name, JSON.stringify(eligibility_questions)]
+      [in_template_id, in_template_name, JSON.stringify(in_eligibility_questions)]
     );
 
     if (
-      result[0] &&
-      result[0][0] &&
-      result[0][0].error
+      result[0]?.[0]?.message
     ) {
       return res.status(409).json({
-        error: result[0][0].error,
+        status: false,
+        error: result[0][0].message,
       });
     }
 
-    if (
-      result[0] &&
-      result[0][0] &&
-      result[0][0].data
+    else if (
+      result[0]?.[0]?.data
     ) {
-      return res.status(201).json({
-        data: result[0][0],
-        status:true,
+      return res.status(200).json({
+        data: result[0][0].data,
+        status: true,
         message: "Template updated successfully"
       });
     }
+
+    else {
+      return res.status(500).json({
+        status: false,
+        error: "Unexpected response from stored procedure"
+      })
+    }
   } catch (error) {
     return res.status(500).json({
-      error: "Internal server error",
-      details: error.message,
+      status: false,
+      error: error.message
     });
   }
 };

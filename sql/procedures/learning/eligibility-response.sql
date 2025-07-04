@@ -14,15 +14,12 @@ BEGIN
   DECLARE in_regret_message TEXT;
   DECLARE response_count INT DEFAULT 0;
   DECLARE expected_questions INT DEFAULT 0;
-  DECLARE error_message VARCHAR(255);
+  DECLARE custom_error VARCHAR(255);
 
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
     ROLLBACK;
-    SELECT JSON_OBJECT(
-      'status', FALSE,
-      'message', COALESCE(error_message, 'An error occurred while processing your eligibility response')
-    ) AS data;
+    SELECT COALESCE(custom_error, 'An error occurred while processing your eligibility response') AS data;
   END;
 
   START TRANSACTION;
@@ -34,7 +31,7 @@ BEGIN
   WHERE tid = in_program_id;
 
   IF template_id IS NULL THEN
-    SET error_message = CONCAT('Invalid program ID: ', in_program_id);
+    SET custom_error = "Program not found!";
     SIGNAL SQLSTATE '45000';
   END IF;
 
@@ -43,7 +40,7 @@ BEGIN
     SELECT 1 FROM dt_eligibility_responses 
     WHERE user_tid = in_user_id AND learning_program_tid = in_program_id
   ) THEN
-    SET error_message = 'You have already submitted an eligibility response for this program';
+    SET custom_error = 'You have already submitted an eligibility response for this program';
     SIGNAL SQLSTATE '45000';
   END IF;
 
@@ -81,10 +78,10 @@ BEGIN
   SELECT ROW_COUNT() INTO response_count;
 
   IF response_count = 0 THEN
-    SET error_message = 'No valid responses were inserted - check question IDs';
+    SET custom_error = 'No valid responses were inserted';
     SIGNAL SQLSTATE '45000';
   ELSEIF response_count != expected_questions THEN
-    SET error_message = CONCAT('Incomplete responses. Expected: ', expected_questions, ', Received: ', response_count);
+    SET custom_error = CONCAT('Incomplete responses. Expected: ', expected_questions, ', Received: ', response_count);
     SIGNAL SQLSTATE '45000';
   END IF;
 

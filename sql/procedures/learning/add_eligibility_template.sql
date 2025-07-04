@@ -24,7 +24,7 @@ END;
 
 START TRANSACTION;
 
--- Check for duplicate template 
+-- Check for duplicate template name by creator
 IF EXISTS (
     SELECT
         1

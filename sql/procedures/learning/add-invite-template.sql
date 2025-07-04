@@ -10,16 +10,13 @@ CREATE PROCEDURE add_invite_template(
 )
 BEGIN
   DECLARE custom_error VARCHAR(255) DEFAULT NULL;
-  DECLARE new_template_id BIGINT;
+ 
 
   -- Error handler
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
     ROLLBACK;
-    SELECT JSON_OBJECT(
-      'status', FALSE,
-      'message', COALESCE(custom_error, 'An error occurred while inserting template')
-    ) AS data;
+    SELECT COALESCE(custom_error, 'An error occurred while inserting template') AS message;
   END;
 
   START TRANSACTION;
@@ -31,7 +28,7 @@ BEGIN
     WHERE creator_tid = in_creator_tid AND name = in_name
   ) THEN
     SET custom_error = CONCAT(in_name, ' - template already exists! You can view and edit template');
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = custom_error;
+    SIGNAL SQLSTATE '45000' ;
   END IF;
 
   -- Insert the new invite template
@@ -41,17 +38,15 @@ BEGIN
     in_creator_tid, in_name, in_subject, in_body
   );
 
-  SET new_template_id = LAST_INSERT_ID();
+
 
   COMMIT;
 
   -- Return success response
   SELECT JSON_OBJECT(
-    'status', TRUE,
-    'data', JSON_OBJECT(
-      'template_id', new_template_id,
+      'template_id', LAST_INSERT_ID(),
       'template_name', in_name
-    )
+    
   ) AS data;
 END $$
 

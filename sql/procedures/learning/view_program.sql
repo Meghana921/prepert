@@ -2,7 +2,6 @@ DROP PROCEDURE IF EXISTS view_program;
 DELIMITER //
 
 CREATE PROCEDURE view_program(
-    IN creator_id BIGINT, 
     IN program_id BIGINT
 ) 
 BEGIN 
@@ -11,27 +10,21 @@ BEGIN
 
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
-        SELECT JSON_OBJECT(
-            'status', FALSE,
-            'message', COALESCE(custom_error, 'Error fetching program details')
-        ) AS data;
+        SELECT COALESCE(custom_error, 'Error fetching program details') AS message;
     END;
 
     -- Check if program exists and belongs to the creator
-    SELECT COUNT(*) INTO program_exists
+   IF NOT EXISTS ( SELECT 1 
     FROM dt_learning_programs
-    WHERE tid = program_id AND creator_tid = creator_id;
-
-    IF program_exists = 0 THEN
-        SET custom_error = 'Program not found';
+    WHERE tid = program_id ) 
+    THEN
+        SET custom_error = 'Program not found!';
         SIGNAL SQLSTATE '45000';
     END IF;
 
     -- Return program info with templates and invitees
     SELECT
         JSON_OBJECT(
-            'status', TRUE,
-            'data', JSON_OBJECT(
                 'program_id', lp.tid,
                 'title', lp.title,
                 'description', lp.description,
@@ -72,7 +65,7 @@ BEGIN
                     JSON_ARRAY()
                 )
             )
-        ) AS data
+        AS data
     FROM dt_learning_programs lp
     WHERE lp.tid = program_id;
 

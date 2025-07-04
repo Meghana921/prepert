@@ -1,0 +1,37 @@
+import { pool } from "../../config/db.js";
+
+const respondToInvitation = async (req, res) => {
+  try {
+    const { programId, email, response } = req.query;
+
+    if (!programId || !email || !response) {
+      return res.status(400).json({ status: false, message: "Missing parameters" });
+    }
+
+    const allowedResponses = ["accepted", "declined"];
+    if (!allowedResponses.includes(response.toLowerCase())) {
+      return res.status(400).json({ status: false, message: "Invalid response type" });
+    }
+
+    // Call a stored procedure to update invitee status or write a direct query
+    const [updateResult] = await pool.query(
+      `CALL update_invitee_response(?, ?, ?)`,
+      [programId, email, response.toLowerCase()]
+    );
+
+    if (updateResult[0][0]?.message === "success") {
+      return res.status(200).send(
+        `<h2>Thank you!</h2><p>Your response "${response}" for program ID ${programId} has been recorded.</p>`
+      );
+    } else {
+      return res.status(400).send(
+        `<h3>Something went wrong</h3><p>${updateResult[0][0]?.message || "Please try again later."}</p>`
+      );
+    }
+  } catch (error) {
+    console.error("Response error:", error);
+    return res.status(500).send("<h3>Internal Server Error</h3><p>We could not record your response.</p>");
+  }
+};
+
+export default respondToInvitation;

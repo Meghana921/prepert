@@ -11,6 +11,6 @@ router.post("/create-program", addProgram);
 router.get("/list-programs", view_created_programs);
 router.get("/view-program", view_program);
 router.post("/program-enrollment", enrollment);
-router.post("/update-program", updateLearningProgram);
+router.put("/update-program", updateLearningProgram);
 
 export default router;

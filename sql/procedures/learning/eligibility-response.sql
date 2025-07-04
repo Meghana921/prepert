@@ -19,7 +19,7 @@ BEGIN
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
     ROLLBACK;
-    SELECT COALESCE(custom_error, 'An error occurred while processing your eligibility response') AS data;
+    SELECT COALESCE(custom_error, 'An error occurred while processing your eligibility response') AS message;
   END;
 
   START TRANSACTION;
@@ -110,8 +110,6 @@ BEGIN
 
   -- 8. Return final JSON response
   SELECT JSON_OBJECT(
-    'status', TRUE,
-    'data', JSON_OBJECT(
       'user_id', in_user_id,
       'program_id', in_program_id,
       'passed', is_eligible,
@@ -119,7 +117,7 @@ BEGIN
                   WHEN is_eligible THEN 'You are eligible for this program'
                   ELSE in_regret_message
                 END
-    )
+    
   ) AS data;
 
   COMMIT;

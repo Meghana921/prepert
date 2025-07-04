@@ -1,12 +1,12 @@
 import { pool } from "../../config/db.js";
-
+import sendEmail from "../../utils/sendEmail.js";
 const updateLearningProgram = async (req, res) => {
   try {
     const {
-      program_id:in_program_id,
+      program_tid:in_program_id,
       title:in_title,
       description:in_description,
-      creator_id:in_creator_id,
+      creator_tid:in_creator_id,
       difficulty_level:in_difficulty_level,
       image_path:in_image_path,
       price:in_price,
@@ -36,10 +36,10 @@ const updateLearningProgram = async (req, res) => {
       "CALL update_learning_program(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)",
       [
         in_program_id,
-        in_title || null,
-        in_description || null,
+        in_title ,
+        in_description ,
         in_creator_id,
-        in_difficulty_level || null,
+        in_difficulty_level ,
         in_image_path || null,
         in_price || null,
         in_access_period_months || null,
@@ -47,7 +47,7 @@ const updateLearningProgram = async (req, res) => {
         in_campus_hiring || false,
         in_sponsored || false,
         in_minimum_score || null,
-        in_experience_from || null,
+        in_experience_from ,
         in_experience_to || null,
         in_locations || null,
         in_employer_name || null,
@@ -60,19 +60,51 @@ const updateLearningProgram = async (req, res) => {
 
     
 
-    if (result[0]?.[0]?.message) {
-      return res.status(400).json({ error: result[0][0] });
+   if (result[0]?.[0]?.message) {
+      return res.status(409).json({
+        status: false,
+        error: result[0][0].message
+      });
+    }
+   else{
+    // Fetch email template for invitations
+    const [emailTemplateResult] = await pool.query(
+      `CALL view_invite_template(?)`,
+      [in_invite_template_id]
+    );
+
+    // Extract subject and body from the template
+    const emailSubject = emailTemplateResult[0][0].data.subject;
+    const emailBody = emailTemplateResult[0][0].data.body;
+
+    // Send invite emails to each invitee
+    if (Array.isArray(in_invitees)) {
+      for (const invitee of in_invitees) {
+        await sendEmail({
+          to: invitee.email,
+          subject: emailSubject,
+          text: emailBody
+        });
+        console.log("Invite sent to", invitee.email);
+      }
     }
 
+    // Return success response after everything is done
+    return res.status(200).json({
+      status: true,
+      data: result[0][0].data,
+      message: "Program updated successfully"
+    });}
 
-    res.status(201).json({ data: result[0][0].data, status: true, message: "Program updated successfully!" });
   } catch (error) {
-    console.error('Error creating program:', error);
+    // Handle any unexpected errors
+    console.error('Error updating program:', error);
     res.status(500).json({
-      error: 'Internal server error',
-      details: error.message
+      status: false,
+      error: error.message
     });
   }
 };
+
 
 export default updateLearningProgram;

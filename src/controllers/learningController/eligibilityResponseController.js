@@ -8,8 +8,7 @@ const submitEligibilityResponse = async (req, res) => {
     if (!in_user_id || !in_program_id || !in_questions) {
       return res.status(400).json({
         success: false,
-        error: "Missing required fields",
-        details: "Please provide user_id, program_id, and questions"
+        error: "Missing required fields"
       });
     }
 
@@ -20,21 +19,21 @@ const submitEligibilityResponse = async (req, res) => {
     );
     console.log(result)
 
-    if (results[0]?.[0]?.message) {
+    if (result[0]?.[0]?.message) {
       return res.status(409).json({
-        status:true,
+        status:false,
         error: result[0][0].message
       });
     }
 
     return res.status(201).json({
-      data:result[0][0],
+      data:result[0][0].data,
       status:true
     });
 
   } catch (error) {
     return res.status(500).json({
-      status:true,
+      status:false,
       error: error.message
     });
   }

@@ -8,7 +8,7 @@ CREATE PROCEDURE evaluate_assessment(
 )
 BEGIN
     DECLARE total_score     INT DEFAULT 0;
-    DECLARE total_questions INT DEFAULT 0;
+    DECLARE v_total_questions INT DEFAULT 0;
     DECLARE correct_answer  VARCHAR(255);
     DECLARE selected_option VARCHAR(255);
     DECLARE question_id     VARCHAR(100);
@@ -21,18 +21,15 @@ BEGIN
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
-        SELECT JSON_OBJECT(
-            'status', FALSE,
-            'message', 'Error occurred while evaluating assessment'
-        ) AS data;
-        RESIGNAL;
+        SELECT ( 'Error occurred while evaluating assessment'
+        ) AS message;
     END;
 
     START TRANSACTION;
 
     -- Fetch original question set
     SELECT total_questions, gpt_questions_answers 
-    INTO total_questions, questions_json
+    INTO v_total_questions, questions_json
     FROM dt_topic_assessments
     WHERE tid = assessment_id;
 
@@ -40,8 +37,8 @@ BEGIN
     SET question_idx = 0;
 
     WHILE question_idx < loop_count DO
-        SET question_id = JSON_UNQUOTE(JSON_EXTRACT(questions_json, CONCAT('$[', question_idx, '].question_id')));
-        SET correct_answer = JSON_UNQUOTE(JSON_EXTRACT(questions_json, CONCAT('$[', question_idx, '].correct_answer')));
+        SET question_id = JSON_UNQUOTE(JSON_EXTRACT(questions_json, CONCAT('$[', question_idx, '].sequence_number')));
+        SET correct_answer = JSON_UNQUOTE(JSON_EXTRACT(questions_json, CONCAT('$[', question_idx, '].correct_option')));
 
         -- Find the matching selected option from user response
         SET selected_option = JSON_UNQUOTE(
@@ -50,7 +47,7 @@ BEGIN
                  FROM JSON_TABLE(responses_json, '$[*]' COLUMNS (
                     response JSON PATH '$'
                  )) AS r
-                 WHERE JSON_UNQUOTE(JSON_EXTRACT(r.response, '$.question_id')) = question_id
+                 WHERE JSON_UNQUOTE(JSON_EXTRACT(r.response, '$.sequence_number')) = question_id
                  LIMIT 1
                 ),
                 '$.selected_option'
@@ -78,18 +75,11 @@ BEGIN
 
     -- Return JSON score
     SELECT JSON_OBJECT(
-        'status', TRUE,
-        'data', JSON_OBJECT(
-            'score', CONCAT(total_score, '/', total_questions)
-        )
+            'score', CONCAT(total_score, '/', v_total_questions)
+        
     ) AS data;
 
 END$$
 DELIMITER ;
 
--- {
---   "status": true,
---   "data": {
---     "score": "3/5"
---   }
--- }
+

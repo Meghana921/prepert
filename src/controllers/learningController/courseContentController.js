@@ -1,19 +1,6 @@
 import { pool } from "../../config/db.js";
 
-const addCourseContent = async (req, res) => {
-  try {
-    const { learning_program_tid, module_title, module_description, module_sequence, topics } = req.body;
-    if (!learning_program_tid || !module_title || !module_description || !module_sequence || !topics) {
-      return res.status(400).json({ error: 'learning_program_tid, module_title, module_description, module_sequence, and topics are required' });
-    }
-    const params = [learning_program_tid, module_title, module_description, module_sequence, JSON.stringify(topics)];
-    const [result] = await pool.query('sp_add_course_content(?,?,?,?,?)', params);
-    res.json(result[0][0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-};
+
 
 const editCourseContent = async (req, res) => {
   try {

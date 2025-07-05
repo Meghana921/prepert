@@ -18,10 +18,7 @@ BEGIN
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
-        SELECT JSON_OBJECT(
-            'status', FALSE,
-            'message', COALESCE(custom_error, 'An error occurred during assessment creation')
-        ) AS data;
+            SELECT COALESCE(custom_error, 'An error occurred during assessment creation') AS message;
     END;
 
     START TRANSACTION;
@@ -70,8 +67,8 @@ BEGIN
             question,
             options,
             correct_option,
-            score,
-            created_at
+            score
+            
         )
         SELECT
             assessment_id,
@@ -79,14 +76,15 @@ BEGIN
             options,
             correct_option,
             IFNULL(score, 1),
-            CURRENT_TIMESTAMP
+            sequence_number
         FROM JSON_TABLE (
             in_questions,
             '$[*]' COLUMNS (
                 question TEXT PATH '$.question',
                 options JSON PATH '$.options',
-                correct_option TEXT PATH '$.correct_option',
-                score INT PATH '$.score'
+                correct_option INT PATH '$.correct_option',
+                score INT PATH '$.score',
+              sequence_number INT PATH '$.sequence_number'
             )
         ) AS questions;
 
@@ -96,12 +94,10 @@ BEGIN
     COMMIT;
 
     -- Return structured response
-    SELECT JSON_OBJECT(
-        'status', TRUE,
-        'data', JSON_OBJECT(
+   SELECT JSON_OBJECT(
             'assessment_id', assessment_id,
             'total_questions', questions_added
-        )
+        
     ) AS data;
 END //
 

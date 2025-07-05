@@ -17,10 +17,7 @@ BEGIN
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
     ROLLBACK;
-    SELECT JSON_OBJECT(
-      'status', FALSE,
-      'message', COALESCE(custom_error, 'Failed to enroll due to a database error')
-    ) AS data;
+    SELECT  COALESCE(custom_error, 'Failed to enroll due to a database error')AS message;
   END;
 
   START TRANSACTION;
@@ -47,11 +44,11 @@ BEGIN
   FROM dt_learning_programs 
   WHERE tid = in_program_id;
 
-  SELECT COUNT(*) INTO current_enrollments
+  SELECT COUNT(tid) INTO current_enrollments
   FROM dt_learning_enrollments 
   WHERE learning_program_tid = in_program_id;
 
-  IF available_slots > 0 AND current_enrollments >= available_slots THEN
+  IF current_enrollments >= available_slots THEN
     SET custom_error = 'No available slots in this program';
     SIGNAL SQLSTATE '45000';
   END IF;
@@ -90,7 +87,7 @@ BEGIN
 
   -- 7. Update invitee if exists
   SELECT email INTO email_id 
-  FROM dt_users 
+  FROM dtusers 
   WHERE tid = in_user_id;
 
   IF email_id IS NOT NULL THEN
@@ -107,13 +104,11 @@ BEGIN
 
   -- 8. Final JSON response
   SELECT JSON_OBJECT(
-    'status', TRUE,
-    'data', JSON_OBJECT(
       'enrollment_id', enrollment_id,
       'user_id', in_user_id,
       'program_id', in_program_id,
       'expires_on', expire_date
-    )
+    
   ) AS data;
 
 END $$

@@ -10,10 +10,7 @@ BEGIN
 
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
-        SELECT JSON_OBJECT(
-            'status', FALSE,
-            'message', COALESCE(custom_error, 'Database error occurred')
-        ) AS data;
+        SELECT COALESCE(custom_error, 'Database error occurred')AS message;
     END;
 
     -- Check if any assessment exists for the program
@@ -26,9 +23,7 @@ BEGIN
 
     -- Build the complete JSON result
     SELECT 
-        JSON_OBJECT(
-            'status', TRUE,
-            'data', JSON_OBJECT(
+         JSON_OBJECT(
                 'assessment_id', a.tid,
                 'title', a.title,
                 'description', a.description,
@@ -52,7 +47,7 @@ BEGIN
                 ),
                 'created_at', a.created_at,
                 'updated_at', a.updated_at
-            )
+            
         ) INTO json_result
     FROM dt_learning_assessments a
     WHERE a.learning_program_tid = in_program_id

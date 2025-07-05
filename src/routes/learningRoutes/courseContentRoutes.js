@@ -1,9 +1,9 @@
 import express from "express";
-import courseContentController from '../../controllers/learningController/courseContentController.js';
+import addLearningModulesAndTopics from '../../controllers/learningController/addCourseContent.js';
 const router = express.Router();
 
-router.post('/', courseContentController.addCourseContent);
-router.put('/', courseContentController.editCourseContent);
-router.delete('/', courseContentController.deleteCourseContent);
+router.post('/add-course-content', addLearningModulesAndTopics);
+// router.put('/', courseContentController.editCourseContent);
+// router.delete('/', courseContentController.deleteCourseContent);
 
 export default router; 

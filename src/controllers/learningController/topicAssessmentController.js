@@ -8,7 +8,7 @@ const addTopicAssessment = async (req, res) => {
     if (!in_user_tid || !in_topic_tid || !in_questions_json) {
       return res.status(400).json({
         status: false,
-        error: "Missing required fields (user_tid, topic_tid, questions_json)"
+        error: "Missing required fields!"
       });
     }
 
@@ -18,32 +18,24 @@ const addTopicAssessment = async (req, res) => {
     );
 
 
-    if (result[0]?.[0]?.message) {
-      return res.status(400).json({
-        status: false,
-        error: result[0][0].message
-      });
-    }
-
     if (result[0][0]) {
       return res.status(201).json({
         status: true,
-        data: result[0][0],
+        data: result[0][0].data,
         message: "Assessment created successfully"
       });
     }
-
+   else{
     return res.status(500).json({
       status: false,
       error: "Unexpected database response"
     });
-
+  }
   } catch (error) {
     console.error("Failed to create assessment:", error);
     return res.status(500).json({
       status: false,
-      error: "Internal server error",
-      details: error.message
+      error: error.message
     });
   }
 };

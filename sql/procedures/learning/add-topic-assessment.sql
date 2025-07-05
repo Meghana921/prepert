@@ -9,18 +9,13 @@ CREATE PROCEDURE add_topic_assessment (
 )
 BEGIN
     DECLARE assessment_id BIGINT UNSIGNED;
-    DECLARE custom_error VARCHAR(255);
-
-    -- Error handler
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+   DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
-        SELECT JSON_OBJECT(
-            'status', FALSE,
-            'message', COALESCE(custom_error, 'An error occurred while saving topic assessment')
-        ) AS data;
+        SELECT ( 'Error occurred while creating assessment'
+        ) AS message;
     END;
-
+    
     START TRANSACTION;
 
     -- Insert topic assessment
@@ -38,19 +33,17 @@ BEGIN
 
     SET assessment_id = LAST_INSERT_ID();
 
-    COMMIT;
+ 
 
     -- Extract question list from inserted JSON and return structured response
-    SELECT JSON_OBJECT(
-        'status', TRUE,
-        'data', JSON_OBJECT(
+    SELECT  JSON_OBJECT(
             'assessment_id', a.tid,
             'topic_id', a.topic_tid,
             'questions', COALESCE(
                 (
                     SELECT JSON_ARRAYAGG(
                         JSON_OBJECT(
-                            'question_id', q.question_id,
+                            'sequence_number', q.sequence_number,
                             'question', q.question,
                             'options', q.options
                         )
@@ -58,7 +51,7 @@ BEGIN
                     FROM JSON_TABLE(
                         a.gpt_questions_answers,
                         '$[*]' COLUMNS (
-                            question_id VARCHAR(50) PATH '$.question_id',
+                            sequence_number VARCHAR(50) PATH '$.sequence_number',
                             question TEXT PATH '$.question',
                             options JSON PATH '$.options'
                         )
@@ -66,11 +59,11 @@ BEGIN
                 ),
                 JSON_ARRAY()
             )
-        )
+        
     ) AS data
     FROM dt_topic_assessments a
     WHERE a.tid = assessment_id;
-
+   COMMIT;
 END //
 
 DELIMITER ;

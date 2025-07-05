@@ -12,7 +12,7 @@ import courseContentRoutes from "./routes/learningRoutes/courseContentRoutes.js"
 import courseContentWithProgressRoutes from "./routes/learningRoutes/courseContentWithProgressRoutes.js";
 import inviteTemplateRoutes from "./routes/learningRoutes/inviteTemplateRoutes.js";
 import getCertificateRoutes from "./routes/learningRoutes/getCertificateRoutes.js";
-
+import enrollmentRoute from "./routes/learningRoutes/enrollementRoute.js"
 testConnection();
 
 const app = express();
@@ -21,7 +21,8 @@ app.use(express.json());
 // Learning module routes
 app.use('/learning', programRoutes);
 app.use('/learning', eligibilityTemplateRoutes);
-app.use('/api/learning/assessment', assessmentRoutes);
+app.use('/learning', assessmentRoutes);
+app.use('/learning',enrollmentRoute);
 app.use('/api/learning/user', userRoutes);
 app.use('/api/learning/learning-question', learningQuestionRoutes);
 app.use('/api/learning/track-progress', trackProgressRoutes);

@@ -8,16 +8,12 @@ BEGIN
     -- Error handling block
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
-        SELECT JSON_OBJECT(
-            'status', FALSE,
-            'message', COALESCE(custom_error, 'An error occurred while fetching programs')
-        ) AS data;
+        SELECT  COALESCE(custom_error, 'An error occurred while fetching programs') AS message;
     END;
 
     -- Main data response
     SELECT JSON_OBJECT(
-        'status', TRUE,
-        'data', COALESCE(
+        "programs",COALESCE(
             (
                 SELECT JSON_ARRAYAGG(
                     JSON_OBJECT(

@@ -3,7 +3,7 @@ import { pool } from "../../config/db.js";
 const addProgramAssessment = async (req, res) => {
   try {
     const { 
-      program_id: in_program_id,
+      program_tid: in_program_id,
       title: in_title,
       description: in_description,
       question_count: in_question_count,
@@ -41,7 +41,7 @@ const addProgramAssessment = async (req, res) => {
       ]
     );
 
-   
+   console.log(result[0][0])
     if (result[0]?.[0]?.message) {
       return res.status(409).json({
         status: false,
@@ -50,7 +50,7 @@ const addProgramAssessment = async (req, res) => {
     }
 
    
-    if (result[0]?.[0]?.data) {
+    else if(result[0]?.[0]?.data) {
       return res.status(201).json({
         data: result[0][0].data,
         status: true,
@@ -58,14 +58,18 @@ const addProgramAssessment = async (req, res) => {
       });
     }
 
-
+   else {
+      return res.status(500).json({
+        status: false,
+        error: "Unexpected response from stored procedure"
+      })
+    }
 
   } catch (error) {
-    console.error("Error in addLearningAssessment:", error);
+    console.error("Failed to add learning assessment:", error);
     return res.status(500).json({
       status: false,
-      error: "Internal server error",
-      details: error.message,
+      error:error.message,
     });
   }
 };

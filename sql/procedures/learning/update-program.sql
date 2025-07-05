@@ -30,21 +30,16 @@ BEGIN
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
     ROLLBACK;
-    SELECT JSON_OBJECT(
-      'status', FALSE,
-      'message', COALESCE(custom_error, 'Error updating program')
-    ) AS data;
-    RESIGNAL;
+    SELECT  COALESCE(custom_error, 'Error updating program') AS message;
+  
   END;
 
   START TRANSACTION;
 
   -- Check if the program exists
-  SELECT COUNT(*) INTO program_exists
+  IF NOT EXISTS (SELECT 1
   FROM dt_learning_programs
-  WHERE tid = in_program_id AND creator_tid = in_creator_id;
-
-  IF program_exists = 0 THEN
+  WHERE tid = in_program_id AND creator_tid = in_creator_id)THEN
     SET custom_error = 'Program not found!';
     SIGNAL SQLSTATE '45000';
   END IF;
@@ -71,6 +66,13 @@ BEGIN
     invite_template_tid = in_invite_template_id
   WHERE tid = in_program_id;
 
+IF EXISTS (SELECT COUNT(tid) AS cnt FROM dt_learning_programs
+WHERE title=in_title AND creator_tid = in_creator_id
+GROUP BY creator_tid
+HAVING cnt >1)THEN
+SET custom_error = 'Program already exists in this name!';
+    SIGNAL SQLSTATE '45000';
+END IF ;
   -- Update expires_on for all enrollments
   UPDATE dt_learning_enrollments 
   SET expires_on = DATE_ADD(enrollment_date, INTERVAL in_access_period_months MONTH)
@@ -97,11 +99,9 @@ BEGIN
 
   -- Return success
   SELECT JSON_OBJECT(
-    'status', TRUE,
-    'data', JSON_OBJECT(
       'program_id', in_program_id,
       'program_title', in_title
-    )
+    
   ) AS data;
 
 END $$

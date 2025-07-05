@@ -4,7 +4,7 @@ import submitTopicAssessment from '../../controllers/learningController/topicAss
 import addProgramAssessment from '../../controllers/learningController/addProgramAssessmentController.js';
 import viewProgramassessment from '../../controllers/learningController/viewProgramAssessmentController.js';
 import submitProgramAssessment from '../../controllers/learningController/programAssessmentResponseController.js';
-import editProgramAssessment from '../../controllers/learningController/editProgramAssessment.js';
+import editProgramAssessment from '../../controllers/learningController/updateProgramAssessment.js';
 
 const router = express.Router();
 
@@ -13,7 +13,7 @@ router.post('/submit-topic-assessment', submitTopicAssessment);
 router.post('/add-program-assessment', addProgramAssessment);
 router.get('/view-program-assessment', viewProgramassessment);
 router.post('/submit-program-assessment', submitProgramAssessment);
-router.post('/edit-program-assessment', editProgramAssessment);
+router.put('/update-program-assessment', editProgramAssessment);
 
 export default router;
 

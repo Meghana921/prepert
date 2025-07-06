@@ -18,7 +18,8 @@ BEGIN
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
-            SELECT COALESCE(custom_error, 'An error occurred during assessment creation') AS message;
+            SET custom_error =  COALESCE(custom_error, 'An error occurred during assessment creation');
+            SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT=custom_error;
     END;
 
     START TRANSACTION;
@@ -28,7 +29,7 @@ BEGIN
         SELECT 1 FROM dt_learning_programs WHERE tid = in_program_id
     ) THEN
         SET custom_error = CONCAT('Learning program with ID ', in_program_id, ' does not exist');
-        SIGNAL SQLSTATE '45000';
+       SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT=custom_error;
     END IF;
 
     -- Check if assessment already exists
@@ -36,7 +37,7 @@ BEGIN
         SELECT 1 FROM dt_learning_assessments WHERE learning_program_tid = in_program_id
     ) THEN
         SET custom_error = 'Assessment for this program has already been created. You can access and update it if necessary';
-        SIGNAL SQLSTATE '45000';
+        SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT=custom_error;
     END IF;
 
     -- Insert into dt_learning_assessments
@@ -45,17 +46,13 @@ BEGIN
         title,
         description,
         question_count,
-        passing_score,
-        created_at,
-        updated_at
+        passing_score
     ) VALUES (
         in_program_id,
         in_title,
         in_description,
         in_question_count,
-        in_passing_score,
-        CURRENT_TIMESTAMP,
-        CURRENT_TIMESTAMP
+        in_passing_score
     );
 
     SET assessment_id = LAST_INSERT_ID();
@@ -67,7 +64,8 @@ BEGIN
             question,
             options,
             correct_option,
-            score
+            score,
+            sequence_number
             
         )
         SELECT
@@ -89,6 +87,9 @@ BEGIN
         ) AS questions;
 
         SET questions_added = ROW_COUNT();
+	ELSE
+    SET custom_error = 'No questions found to insert';
+        SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT=custom_error;
     END IF;
 
     COMMIT;

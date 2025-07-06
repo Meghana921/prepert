@@ -23,14 +23,14 @@ BEGIN
 
     START TRANSACTION;
 
-    -- 1. Validate assessment exists
+    -- 1. Get question_count and passing score
     SELECT question_count, passing_score
     INTO v_question_count, v_passing_score
     FROM dt_learning_assessments
     WHERE tid = p_assessment_id
     LIMIT 1;
 
-    -- 2. Find enrollment if any 
+    -- 2. Find enrollment  
     SELECT tid INTO v_enrollment_id
     FROM dt_learning_enrollments
     WHERE user_tid = p_user_id

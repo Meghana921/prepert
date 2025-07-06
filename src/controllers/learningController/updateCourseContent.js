@@ -1,9 +1,12 @@
 import { pool } from "../../config/db.js";
 
-const updateProgramModulesAndTopics = async (req, res) => {
+// Controller function to update modules and their nested topics for a learning program
+const updateCourseContent = async (req, res) => {
   try {
+    // Destructure input from request body
     const { program_id, modules } = req.body;
 
+    // Validate required input
     if (!program_id || !Array.isArray(modules)) {
       return res.status(400).json({
         status: false,
@@ -11,18 +14,20 @@ const updateProgramModulesAndTopics = async (req, res) => {
       });
     }
 
-    // Call the procedure to delete and re-insert modules and topics
+    // Call the stored procedure to update modules and topics
     await pool.query(
       "CALL update_learning_modules_and_topics(?, ?)",
       [program_id, JSON.stringify(modules)]
     );
 
+    // Send success response
     return res.status(200).json({
       status: true,
       message: "Modules and topics updated successfully.",
     });
 
   } catch (error) {
+    // Handle any unexpected errors
     console.error("Error updating modules and topics:", error);
     return res.status(500).json({
       status: false,
@@ -31,4 +36,4 @@ const updateProgramModulesAndTopics = async (req, res) => {
   }
 };
 
-export default updateProgramModulesAndTopics;
+export default updateCourseContent;

@@ -17,14 +17,7 @@ BEGIN
     DECLARE loop_count INT;
     
     DECLARE questions_json JSON;
-
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        SELECT ( 'Error occurred while evaluating assessment'
-        ) AS message;
-    END;
-
+    
     START TRANSACTION;
 
     -- Fetch original question set

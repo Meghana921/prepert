@@ -28,16 +28,9 @@ const addEligibilityTemplate = async (req, res) => {
       ]
     );
 
-    // Handle known business logic error returned by stored procedure (e.g., duplicate name)
-    if (result[0]?.[0]?.message) {
-      return res.status(409).json({
-        status: false,
-        error: result[0][0].message
-      });
-    }
-
+    
     // If successful, return the response data
-    else if (result[0]?.[0]?.data) {
+     if (result[0]?.[0]?.data) {
       return res.status(201).json({
         status: true,
         data: result[0][0].data,

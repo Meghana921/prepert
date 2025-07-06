@@ -12,7 +12,7 @@ BEGIN
             'message', 'An error occurred while retrieving subscribed courses'
         ) AS data;
         ROLLBACK;
-        RESIGNAL;
+      
     END;
 
     SELECT JSON_OBJECT(

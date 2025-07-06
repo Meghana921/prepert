@@ -13,8 +13,7 @@ BEGIN
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
     ROLLBACK;
-   SET custom_error =  COALESCE(custom_error, 'An error occurred while updating the template');
-   SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT = custom_error;
+    SELECT COALESCE(custom_error, 'An error occurred while updating the template')AS message;
   END;
 
   START TRANSACTION;
@@ -41,7 +40,7 @@ BEGIN
   GROUP BY creator_tid
   having cnt > 1) THEN
   SET custom_error = "Please choose a different name — this template already exists";
-  SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT = custom_error;
+  SIGNAL SQLSTATE "45000";
   END IF;
   COMMIT;
 

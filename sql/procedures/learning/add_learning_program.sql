@@ -1,3 +1,4 @@
+-- Procedure to add a new learning program 
 DROP PROCEDURE IF EXISTS add_learning_program;
 
 DELIMITER //
@@ -6,7 +7,7 @@ CREATE PROCEDURE add_learning_program (
     IN in_title VARCHAR(100),
     IN in_description TEXT,
     IN in_creator_id BIGINT,
-    IN in_difficulty_level ENUM ('low', 'medium', 'high', 'very_high'),
+    IN in_difficulty_level TINYINT,
     IN in_image_path VARCHAR(255),
     IN in_price DECIMAL(10, 2),
     IN in_access_period_months INT,
@@ -26,36 +27,26 @@ CREATE PROCEDURE add_learning_program (
 BEGIN
     DECLARE custom_error VARCHAR(255) DEFAULT NULL;
     DECLARE learning_program_id BIGINT;
-    DECLARE existing_tid BIGINT DEFAULT NULL;
 
-    -- Error handling
+    -- Error handler for rollback and exception
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
-        SELECT JSON_OBJECT(
-            'status', FALSE,
-            'message', COALESCE(custom_error, 'An error occurred during program creation')
-        ) AS data;
+        SET custom_error = COALESCE(custom_error, 'An error occurred during program creation');
+        SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT = custom_error;
     END;
 
     START TRANSACTION;
 
-    -- Check for duplicate title
-    SELECT tid INTO existing_tid
+    -- Prevent duplicate programs with same title and creator
+    IF EXISTS (SELECT 1
     FROM dt_learning_programs
-    WHERE title = in_title AND creator_tid = in_creator_id
-    LIMIT 1;
-
-    IF existing_tid IS NOT NULL THEN
-        SET custom_error = CONCAT(
-            in_title,
-            ' program already exists. You can view and edit program ID: ',
-            existing_tid
-        );
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = custom_error;
+    WHERE title = in_title AND creator_tid = in_creator_id) THEN
+        SET custom_error = 'Program already exists. You can view or modify the existing one.';
+        SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT = custom_error;
     END IF;
 
-    -- Insert the learning program
+    -- Insert program details
     INSERT INTO dt_learning_programs (
         title, description, creator_tid, difficulty_level,
         image_path, price, access_period_months, available_slots,
@@ -75,8 +66,8 @@ BEGIN
 
     SET learning_program_id = LAST_INSERT_ID();
 
-    -- Add sponsorship if applicable
-    IF in_sponsored = TRUE THEN
+    -- Add sponsorship details if applicable
+    IF (in_sponsored) THEN
         INSERT INTO dt_program_sponsorships (
             company_user_tid,
             learning_program_tid,
@@ -88,7 +79,7 @@ BEGIN
         );
     END IF;
 
-    -- Add invitees if any
+    -- Insert invitees if provided
     IF JSON_LENGTH(in_invitees) > 0 THEN
         INSERT INTO dt_invitees (learning_program_tid, name, email)
         SELECT
@@ -106,13 +97,10 @@ BEGIN
 
     COMMIT;
 
-    -- Return structured response
+    -- Return success response
     SELECT JSON_OBJECT(
-        'status', TRUE,
-        'data', JSON_OBJECT(
-            'program_id', learning_program_id,
-            'program_name', in_title
-        )
+        'program_id', learning_program_id,
+        'program_name', in_title
     ) AS data;
 END //
 

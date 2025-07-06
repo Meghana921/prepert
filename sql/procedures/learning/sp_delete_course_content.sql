@@ -1,115 +1,102 @@
-DROP PROCEDURE IF EXISTS sp_delete_course_content;
+DROP PROCEDURE IF EXISTS delete_program;
 DELIMITER //
 
-CREATE PROCEDURE sp_delete_course_content(
-    IN p_content_type ENUM('module', 'topic'),
-    IN p_content_id BIGINT UNSIGNED,
-    IN p_learning_program_tid BIGINT UNSIGNED
-)
-main_block: BEGIN
-    DECLARE v_content_exists INT DEFAULT 0;
-    DECLARE v_program_match INT DEFAULT 0;
-    DECLARE custom_error VARCHAR(255);
+CREATE PROCEDURE delete_program(IN program_id BIGINT UNSIGNED)
+BEGIN 
+DECLARE EXIT HANDLER FOR SQLEXCEPTION
+BEGIN
+  ROLLBACK;
+  SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Delete failed';
+END;
+  START TRANSACTION;
 
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        SELECT JSON_OBJECT('status', FALSE, 'message', COALESCE(custom_error, 'Database error')) AS data;
-    END;
+  -- Temp table for topic IDs
+  CREATE TEMPORARY TABLE temp_topic_ids (tid BIGINT UNSIGNED);
+  INSERT INTO temp_topic_ids (tid)
+  SELECT t.tid
+  FROM dt_learning_topics t
+  JOIN dt_learning_modules m ON t.module_tid = m.tid
+  WHERE m.learning_program_tid = program_id;
 
-    START TRANSACTION;
+  -- Delete topic-related data
+  DELETE FROM dt_learning_questions
+  WHERE topic_tid IN (SELECT tid FROM temp_topic_ids);
 
-    IF p_content_type = 'module' THEN
+  DELETE FROM dt_topic_assessments
+  WHERE topic_tid IN (SELECT tid FROM temp_topic_ids);
 
-        -- Check existence and association
-        SELECT COUNT(*) INTO v_content_exists 
-        FROM dt_learning_modules 
-        WHERE tid = p_content_id;
+  DELETE FROM dt_learning_progress
+  WHERE topic_tid IN (SELECT tid FROM temp_topic_ids);
 
-        SELECT COUNT(*) INTO v_program_match
-        FROM dt_learning_modules 
-        WHERE tid = p_content_id AND learning_program_tid = p_learning_program_tid;
+  DELETE FROM dt_learning_topics
+  WHERE tid IN (SELECT tid FROM temp_topic_ids);
 
-        IF v_content_exists = 0 THEN
-            SET custom_error = 'Module not found';
-            SIGNAL SQLSTATE '45000';
-        END IF;
+  -- Delete modules
+  DELETE FROM dt_learning_modules
+  WHERE learning_program_tid = program_id;
 
-        IF v_program_match = 0 THEN
-            SET custom_error = 'Module does not belong to the specified program';
-            SIGNAL SQLSTATE '45000';
-        END IF;
+  -- Eligibility
+  DELETE FROM dt_eligibility_responses
+  WHERE learning_program_tid = program_id;
 
-        -- Delete progress and topics
-        DELETE lp FROM dt_learning_progress lp
-        JOIN dt_learning_topics lt ON lp.topic_tid = lt.tid
-        WHERE lt.module_tid = p_content_id;
+  DELETE FROM dt_eligibility_results
+  WHERE learning_program_tid = program_id;
 
-        DELETE FROM dt_learning_topics 
-        WHERE module_tid = p_content_id;
+  -- Invitees
+  DELETE FROM dt_invitees 
+  WHERE learning_program_tid = program_id;
 
-        DELETE FROM dt_learning_modules 
-        WHERE tid = p_content_id;
+  -- Sponsorships
+  DELETE FROM dt_user_sponsorships
+  WHERE program_sponsorship_tid IN (
+    SELECT tid FROM dt_program_sponsorships
+    WHERE learning_program_tid = program_id
+  );
 
-        COMMIT;
+  DELETE FROM dt_program_sponsorships
+  WHERE learning_program_tid = program_id;
 
-        SELECT JSON_OBJECT(
-            'status', TRUE,
-            'data', JSON_OBJECT(
-                'deleted_type', 'module',
-                'deleted_id', p_content_id,
-                'message', 'Module and its associated topics deleted successfully'
-            )
-        ) AS data;
+  -- Temp table for enrollment IDs
+  CREATE TEMPORARY TABLE temp_enrollment_ids (tid BIGINT UNSIGNED);
+  INSERT INTO temp_enrollment_ids (tid)
+  SELECT tid FROM dt_learning_enrollments
+  WHERE learning_program_tid = program_id;
 
-    ELSEIF p_content_type = 'topic' THEN
+  -- Delete enrollments
+  DELETE FROM dt_learning_enrollments
+  WHERE tid IN (SELECT tid FROM temp_enrollment_ids);
 
-        -- Check topic existence
-        SELECT COUNT(*) INTO v_content_exists 
-        FROM dt_learning_topics lt
-        JOIN dt_learning_modules lm ON lt.module_tid = lm.tid
-        WHERE lt.tid = p_content_id;
+  -- Assessment responses (joined deletion)
+  DELETE ar FROM dt_assessment_responses ar
+  JOIN dt_assessment_attempts aa ON ar.attempt_tid = aa.tid
+  JOIN dt_learning_assessments la ON aa.assessment_tid = la.tid
+  WHERE la.learning_program_tid = program_id;
 
-        SELECT COUNT(*) INTO v_program_match
-        FROM dt_learning_topics lt
-        JOIN dt_learning_modules lm ON lt.module_tid = lm.tid
-        WHERE lt.tid = p_content_id AND lm.learning_program_tid = p_learning_program_tid;
+  -- Assessment attempts
+  DELETE FROM dt_assessment_attempts
+  WHERE enrollment_tid IN (SELECT tid FROM temp_enrollment_ids);
 
-        IF v_content_exists = 0 THEN
-            SET custom_error = 'Topic not found';
-            SIGNAL SQLSTATE '45000';
-        END IF;
+  -- Assessment questions
+  DELETE FROM dt_assessment_questions
+  WHERE assessment_tid IN (
+    SELECT tid FROM dt_learning_assessments
+    WHERE learning_program_tid = program_id
+  );
 
-        IF v_program_match = 0 THEN
-            SET custom_error = 'Topic does not belong to the specified program';
-            SIGNAL SQLSTATE '45000';
-        END IF;
+  -- Assessments
+  DELETE FROM dt_learning_assessments
+  WHERE learning_program_tid = program_id;
 
-        -- Delete progress and questions
-        DELETE FROM dt_learning_progress 
-        WHERE topic_tid = p_content_id;
+  -- Finally delete the program
+  DELETE FROM dt_learning_programs
+  WHERE tid = program_id;
 
-        DELETE FROM dt_learning_questions 
-        WHERE topic_tid = p_content_id;
+  -- Drop temp tables
+  DROP TEMPORARY TABLE IF EXISTS temp_topic_ids;
+  DROP TEMPORARY TABLE IF EXISTS temp_enrollment_ids;
 
-        DELETE FROM dt_learning_topics 
-        WHERE tid = p_content_id;
-
-        COMMIT;
-
-        SELECT JSON_OBJECT(
-            'status', TRUE,
-            'data', JSON_OBJECT(
-                'deleted_type', 'topic',
-                'deleted_id', p_content_id,
-                'message', 'Topic deleted successfully'
-            )
-        ) AS data;
-
-    ELSE
-        SET custom_error = 'Invalid content type. Use "module" or "topic"';
-        SIGNAL SQLSTATE '45000';
-    END IF;
-
+  COMMIT;
 END //
+
 DELIMITER ;
+call  delete_program(18);

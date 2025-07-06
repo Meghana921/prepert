@@ -30,4 +30,3 @@ BEGIN
 END //
 
 DELIMITER ;
-call  view_eligibility_template(1);

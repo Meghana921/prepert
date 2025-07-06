@@ -10,7 +10,8 @@ BEGIN
 
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
-        SELECT COALESCE(custom_error, 'Error fetching program details') AS message;
+		SET custom_error = COALESCE(custom_error, 'Error fetching program details');
+        SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT = custom_error;
     END;
 
     -- Check if program exists and belongs to the creator
@@ -19,7 +20,7 @@ BEGIN
     WHERE tid = program_id ) 
     THEN
         SET custom_error = 'Program not found!';
-        SIGNAL SQLSTATE '45000';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = custom_error;
     END IF;
 
     -- Return program info with templates and invitees

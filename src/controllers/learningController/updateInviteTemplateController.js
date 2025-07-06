@@ -28,14 +28,7 @@ const updateInviteTemplate = async (req, res) => {
       [ in_template_id, in_new_name, in_new_subject, in_new_body]
     );
 
-    if (result[0]?.[0]?.message) {
-      return res.status(404).json({
-        status: false,
-        message: result[0][0].message,
-      });
-    }
-
-    else if (result[0]?.[0]?.data) {
+     if (result[0]?.[0]?.data) {
       return res.status(200).json({
         data: result[0][0].data,
         status: true,

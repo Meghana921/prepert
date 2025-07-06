@@ -6,7 +6,7 @@ CREATE PROCEDURE update_learning_program(
   IN in_title VARCHAR(100),
   IN in_description TEXT,
   IN in_creator_id BIGINT,
-  IN in_difficulty_level ENUM('low', 'medium', 'high', 'very_high'),
+  IN in_difficulty_level TINYINT,
   IN in_image_path VARCHAR(255),
   IN in_price DECIMAL(10, 2),
   IN in_access_period_months INT,
@@ -30,7 +30,8 @@ BEGIN
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
     ROLLBACK;
-    SELECT  COALESCE(custom_error, 'Error updating program') AS message;
+    SET custom_error= COALESCE(custom_error, 'Error updating program') ;
+    SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT=custom_error;
   
   END;
 
@@ -41,7 +42,7 @@ BEGIN
   FROM dt_learning_programs
   WHERE tid = in_program_id AND creator_tid = in_creator_id)THEN
     SET custom_error = 'Program not found!';
-    SIGNAL SQLSTATE '45000';
+    SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT=custom_error;
   END IF;
 
   -- Update program
@@ -71,7 +72,7 @@ WHERE title=in_title AND creator_tid = in_creator_id
 GROUP BY creator_tid
 HAVING cnt >1)THEN
 SET custom_error = 'Program already exists in this name!';
-    SIGNAL SQLSTATE '45000';
+   SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT=custom_error;
 END IF ;
   -- Update expires_on for all enrollments
   UPDATE dt_learning_enrollments 

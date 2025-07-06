@@ -3,22 +3,22 @@ DELIMITER //
 
 CREATE PROCEDURE view_created_program(IN creator_id BIGINT)
 BEGIN
-    
-    -- Main data response
+    -- This procedure returns all programs created by a given creator as a JSON array.
     SELECT JSON_OBJECT(
-        "programs",COALESCE(
+        "programs", COALESCE(
             (
+                -- Aggregate all learning programs created by the given creator
                 SELECT JSON_ARRAYAGG(
                     JSON_OBJECT(
-                        'program_id', lp.tid,
-                        'program_name', lp.title
+                        'program_id', lp.tid,       -- Program ID
+                        'program_name', lp.title    -- Program Name
                     )
                 )
                 FROM dt_learning_programs lp
-                WHERE lp.creator_tid = creator_id
-                ORDER BY lp.created_at
+                WHERE lp.creator_tid = creator_id  -- Filter by creator ID
+                ORDER BY lp.created_at             -- Order by creation date
             ),
-            JSON_ARRAY()
+            JSON_ARRAY() -- Return empty array if no programs found
         )
     ) AS data;
 END //

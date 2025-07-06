@@ -2,27 +2,23 @@ import { pool } from "../../config/db.js";
 
 const viewProgramController = async (req, res) => {
   try {
-    const {program_tid:program_id } = req.body;
+    // Extract program ID from request body
+    const { program_tid: program_id } = req.body;
 
+    // Validate presence of program ID
     if (!program_id) {
       return res.status(400).json({
         status: false,
-        error: "Both creator_id and program_id are required"
+        error: "Required fields missing!"
       });
     }
 
+    // Execute stored procedure to fetch program data
     const [result] = await pool.query("CALL view_program(?)", [
-
       program_id
     ]);
 
-
-
-    if (result[0]?.[0]?.message) {
-      return res.status(400).json({ error: result[0][0] });
-    }
-
-
+    // Send success response with program data
     res.status(201).json({
       data: result[0][0].data,
       status: true,

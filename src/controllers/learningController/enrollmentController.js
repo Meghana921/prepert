@@ -1,49 +1,44 @@
-import  {pool} from "../../config/db.js";
+import { pool } from "../../config/db.js";
 
+// Controller to handle learning program enrollment
 const addLearningEnrollment = async (req, res) => {
   try {
-    const { user_tid:in_user_id,program_tid:in_program_id} = req.body;
+    // Extract and rename input parameters from request body
+    const { user_tid: in_user_id, program_tid: in_program_id } = req.body;
 
-    if (!in_user_id|| !in_program_id) {
+    // Validate required inputs
+    if (!in_user_id || !in_program_id) {
       return res.status(400).json({
         error: "Missing required field!",
       });
     }
 
+    // Call the stored procedure to enroll the user in the program
     const [result] = await pool.query(
-      "CALL learning_enrollment(?,?)",
-      [in_user_id,in_program_id]
+      "CALL learning_enrollment(?, ?)",
+      [in_user_id, in_program_id]
     );
 
-    if (
-      result[0]?.[0]?.message
-    ) {
-      return res.status(409).json({
-        error: result[0][0].message,
-        status:false
-      });
-    }
-
-    else if(result[0]?.[0]?.data) {
+    // Check if a valid data object was returned
+    if (result[0]?.[0]?.data) {
       return res.status(200).json({
         data: result[0][0].data,
-        status:true,
-        message:"Enrolled to program successfully!"
+        status: true,
+        message: "Enrolled to program successfully!"
       });
-    }
-
-     else {
+    } else {
       return res.status(500).json({
         status: false,
         error: "Unexpected response from stored procedure"
-      })
+      });
     }
 
   } catch (error) {
+    // Handle any server or SQL errors
     console.error("Failed to fetch templates:", error);
     return res.status(500).json({
-      error: "Internal server error",
-      details: error.message,
+      error: error.message,
+      status: false
     });
   }
 };

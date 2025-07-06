@@ -1,18 +1,31 @@
 import { pool } from "../../config/db.js";
 
-const trackProgressController = async (req, res) => {
+const trackProgress = async (req, res) => {
   try {
-    const { enrollment_tid, topic_tid, status } = req.body;
-    if (!enrollment_tid || !topic_tid || !status) {
-      return res.status(400).json({ error: 'enrollment_tid, topic_tid, and status are required' });
+    const { user_id, topic_id } = req.body;
+
+    if (!user_id || !topic_id) {
+      return res.status(400).json({
+        status: false,
+        error: "Both user_id and topic_id are required",
+      });
     }
-    const params = [enrollment_tid, topic_tid, status];
-    const [result] = await pool.query('CALL sp_track_learning_progress(?, ?, ?)', params);
-    res.json(result.rows[0] || {});
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+
+    // Call the stored procedure
+    await pool.query(`CALL track_learning_progess(?, ?)`, [user_id, topic_id]);
+
+    return res.status(200).json({
+      status: true,
+      message: `Progress for user ${user_id} on topic ${topic_id} tracked successfully.`,
+    });
+
+  } catch (error) {
+    console.error("Error tracking progress:", error.message);
+    res.status(500).json({
+      status: false,
+      error: error.message || "Internal Server Error",
+    });
   }
 };
 
-export default trackProgressController;
+export default trackProgress;

@@ -9,13 +9,6 @@ CREATE PROCEDURE add_topic_assessment (
 )
 BEGIN
     DECLARE assessment_id BIGINT UNSIGNED;
-   DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        SELECT ( 'Error occurred while creating assessment'
-        ) AS message;
-    END;
-    
     START TRANSACTION;
 
     -- Insert topic assessment
@@ -32,8 +25,6 @@ BEGIN
     );
 
     SET assessment_id = LAST_INSERT_ID();
-
- 
 
     -- Extract question list from inserted JSON and return structured response
     SELECT  JSON_OBJECT(

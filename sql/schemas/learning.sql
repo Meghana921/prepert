@@ -68,17 +68,14 @@ CREATE TABLE dt_learning_topics (
 -- ============================================================================
 -- User subscriptions/enrollments
 
-
+DROP TABLE IF EXISTS dt_learning_enrollments;
 CREATE TABLE dt_learning_enrollments (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     user_tid BIGINT UNSIGNED NOT NULL,
     learning_program_tid BIGINT UNSIGNED NOT NULL,
     status ENUM(
-        'enrolled',
-        'in_progress',
-        'completed',
-        'expired'
-    ) NOT NULL DEFAULT 'enrolled',
+        "0","1","2","3"
+    ) NOT NULL DEFAULT '0' COMMENT "0-enrolled,1-in_progress,2-completed,3-expired",
     progress_percentage TINYINT UNSIGNED DEFAULT 0 COMMENT 'Overall completion percentage',
     enrollment_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     expires_on DATE COMMENT 'When access expires',
@@ -99,10 +96,8 @@ CREATE TABLE dt_learning_progress (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     enrollment_tid BIGINT UNSIGNED NOT NULL,
     topic_tid BIGINT UNSIGNED NOT NULL,
-    status ENUM('not_started', 'in_progress', 'completed') NOT NULL DEFAULT 'not_started',
-    completion_date DATETIME,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    status ENUM("0","1") NOT NULL DEFAULT '0' COMMENT "0-not started 1-completed",
+    completion_date DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_enrollment_tid (enrollment_tid),
     INDEX idx_topic_tid (topic_tid),
     UNIQUE KEY uk_enrollment_topic (enrollment_tid, topic_tid)
@@ -273,14 +268,13 @@ CREATE TABLE dt_invitees (
 -- Sponsorship Tables
 -- ============================================================================
 -- Company sponsorship of learning programs
+DROP TABLE IF EXISTS  dt_program_sponsorships;
 CREATE TABLE dt_program_sponsorships (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     company_user_tid BIGINT UNSIGNED NOT NULL COMMENT 'Company user providing sponsorship',
     learning_program_tid BIGINT UNSIGNED NOT NULL COMMENT 'Sponsored program',
     seats_allocated INT UNSIGNED NOT NULL DEFAULT 1 COMMENT 'Number of sponsorships',
     seats_used INT UNSIGNED DEFAULT 0 COMMENT 'Seats already assigned',
-    start_date DATE NOT NULL,
-    end_date DATE NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_company_user_tid (company_user_tid),
@@ -302,3 +296,22 @@ CREATE TABLE dt_user_sponsorships (
 -- ============================================================================
 -- End of Learning Schema
 -- ============================================================================
+CREATE TABLE dt_users (
+    tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+
+-- Common fields for both user types
+user_type_tid TINYINT UNSIGNED NOT NULL,
+    full_name VARCHAR(200) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    phone VARCHAR(15) UNIQUE,
+    country_code VARCHAR(5),
+    profile_picture_url VARCHAR(255) COMMENT 'URL to profile picture or company logo',
+    language_tid INT UNSIGNED COMMENT 'Preferred language',
+    -- Individual-specific fields
+    external_id VARCHAR(50) COMMENT 'Google ID for individual users',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_email (email),
+    INDEX idx_phone (phone),
+    INDEX idx_user_type (user_type_tid)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;

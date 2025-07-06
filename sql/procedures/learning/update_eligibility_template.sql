@@ -14,25 +14,34 @@ BEGIN
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
     ROLLBACK;
-    SELECT  COALESCE(custom_error, 'An error occurred while updating the template') as message;
+    SET custom_error=COALESCE(custom_error, 'An error occurred while updating the template');
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = custom_error ;
   END;
 
   START TRANSACTION;
 
   -- Check template existence
-  SELECT COUNT(*) INTO template_exists
+  IF NOT EXISTS (SELECT 1
   FROM dt_eligibility_templates
-  WHERE tid = in_template_id;
-
-  IF template_exists = 0 THEN
-    SET custom_error = 'Template not found!';
-    SIGNAL SQLSTATE '45000';
+  WHERE tid = in_template_id) THEN
+    SET custom_error = 'Template not found!' ;
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = custom_error;
   END IF;
 
   -- Update template name
   UPDATE dt_eligibility_templates
   SET name = in_template_name
   WHERE tid = in_template_id;
+
+-- Checking if templete is renamed as existing template
+  IF EXISTS (SELECT count(tid) as cnt from dt_eligibility_templates
+  WHERE name = in_template_name
+  GROUP BY creator_tid
+  having cnt > 1) THEN
+  SET custom_error = "Please choose a different name — this template already exists";
+  SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT = custom_error;
+  END IF;
+  COMMIT;
 
   -- Delete old questions
   DELETE FROM dt_eligibility_questions
@@ -49,7 +58,7 @@ BEGIN
     in_eligibility_questions,
     '$[*]' COLUMNS(
       question TEXT PATH '$.question',
-      deciding_answer ENUM('yes','no') PATH '$.deciding_answer',
+      deciding_answer ENUM('1','0') PATH '$.deciding_answer',
       sequence_number INT PATH '$.sequence_number',
       question_id FOR ORDINALITY
     )
@@ -57,21 +66,17 @@ BEGIN
   WHERE q.question IS NOT NULL;
 
   -- Check for duplicates
-  SELECT COUNT(*) INTO duplicate_count
-  FROM (
-    SELECT question, COUNT(*) AS cnt
+ IF EXISTS(
+    SELECT  COUNT(tid) AS cnt
     FROM dt_eligibility_questions
     WHERE template_tid = in_template_id
     GROUP BY question
     HAVING cnt > 1
-  ) AS duplicates;
-
-  IF duplicate_count > 0 THEN
+  ) THEN
     SET custom_error = 'Duplicate questions found in the template';
-    SIGNAL SQLSTATE '45000';
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = custom_error;
   END IF;
 
-  COMMIT;
 
   -- Return success response
   SELECT JSON_OBJECT(

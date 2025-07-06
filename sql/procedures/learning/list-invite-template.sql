@@ -1,4 +1,4 @@
--- This procedure retrieves all invite templates created by a specific user (creator) in JSON format.
+-- This procedure retrieves all invite templates created by a specific creator in JSON format.
 
 DROP PROCEDURE IF EXISTS list_invite_template;
 
@@ -19,7 +19,7 @@ BEGIN
                 ),
                 JSON_ARRAY() 
             )
-        ) AS data; 
+        ) AS data
     FROM dt_invite_templates
     WHERE creator_tid = creator_id; 
 END //

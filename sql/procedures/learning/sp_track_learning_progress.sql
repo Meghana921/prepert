@@ -1,110 +1,28 @@
-DROP PROCEDURE IF EXISTS sp_track_learning_progress;
-DELIMITER $$
-
-CREATE PROCEDURE sp_track_learning_progress(
-    IN  p_enrollment_tid   BIGINT UNSIGNED,
-    IN  p_topic_tid        BIGINT UNSIGNED,
-    IN  p_status           ENUM('not_started','in_progress','completed')
-)
+DROP procedure IF EXISTS track_learning_progess;
+DELIMITER //
+CREATE PROCEDURE track_learning_progess(IN user_id BIGINT UNSIGNED, IN topic_id BIGINT UNSIGNED)
 BEGIN
-    DECLARE v_progress_exists      INT DEFAULT 0;
-    DECLARE v_total_topics         INT DEFAULT 0;
-    DECLARE v_completed_topics     INT DEFAULT 0;
-    DECLARE v_progress_percentage  TINYINT UNSIGNED DEFAULT 0;
-    DECLARE v_error_message        VARCHAR(255) DEFAULT NULL;
+DECLARE enrollment_id BIGINT UNSIGNED ;
+DECLARE progress TINYINT;
+DECLARE EXIT HANDLER FOR SQLEXCEPTION
+BEGIN 
+ROLLBACK;
+END;
+START TRANSACTION;
 
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        SELECT JSON_OBJECT(
-            'status', FALSE,
-            'message', COALESCE(v_error_message, 'Database error occurred while tracking progress')
-        ) AS data;
-        RESIGNAL;
-    END;
+SELECT de.tid  into enrollment_id FROM dt_learning_enrollments de
+JOIN dt_learning_modules dm ON de.learning_program_tid = dm.learning_program_tid
+JOIN dt_learning_topics dt ON dt.module_tid = dm.tid
+WHERE user_tid = 1 AND dt.tid = 1;
 
-    START TRANSACTION;
+ SELECT progress_weight into progress FROM  dt_learning_topics WHERE tid = topic_id;
 
-    -- 1. Check if progress record exists
-    SELECT COUNT(*) INTO v_progress_exists
-    FROM dt_learning_progress
-    WHERE enrollment_tid = p_enrollment_tid
-      AND topic_tid      = p_topic_tid;
+INSERT INTO dt_learning_progress(enrollment_tid, topic_tid,status) VALUES(enrollment_id,topic_id,1);
+UPDATE dt_learning_enrollments
+SET  progress_percentage =  progress_percentage+progress,
+status = CASE WHEN progress_percentage+progress= 100 THEN "2" ELSE "1" END;
 
-    -- 2. Insert or update
-    IF v_progress_exists > 0 THEN
-        UPDATE dt_learning_progress
-        SET status = p_status,
-            completion_date = CASE
-                WHEN p_status = 'completed' THEN NOW()
-                ELSE completion_date
-            END,
-            updated_at = NOW()
-        WHERE enrollment_tid = p_enrollment_tid
-          AND topic_tid      = p_topic_tid;
-    ELSE
-        INSERT INTO dt_learning_progress (
-            enrollment_tid,
-            topic_tid,
-            status,
-            completion_date
-        ) VALUES (
-            p_enrollment_tid,
-            p_topic_tid,
-            p_status,
-            CASE WHEN p_status = 'completed' THEN NOW() ELSE NULL END
-        );
-    END IF;
-
-    -- 3. Total topics in course
-    SELECT COUNT(DISTINCT lt.tid) INTO v_total_topics
-    FROM dt_learning_enrollments le
-    JOIN dt_learning_programs  lp ON le.learning_program_tid = lp.tid
-    JOIN dt_learning_modules   lm ON lp.tid = lm.learning_program_tid
-    JOIN dt_learning_topics    lt ON lm.tid = lt.module_tid
-    WHERE le.tid = p_enrollment_tid;
-
-    -- 4. Completed topics
-    SELECT COUNT(*) INTO v_completed_topics
-    FROM dt_learning_progress
-    WHERE enrollment_tid = p_enrollment_tid AND status = 'completed';
-
-    -- 5. Progress % (no weightage)
-    IF v_total_topics > 0 THEN
-        SET v_progress_percentage = ROUND((v_completed_topics / v_total_topics) * 99);
-    ELSE
-        SET v_progress_percentage = 0;
-    END IF;
-
-    -- 6. Update enrollment table
-    UPDATE dt_learning_enrollments
-    SET 
-        progress_percentage = v_progress_percentage,
-        status = CASE
-            WHEN v_progress_percentage = 100 THEN 'completed'
-            WHEN v_progress_percentage > 0 THEN 'in_progress'
-            ELSE 'enrolled'
-        END,
-        completed_at = CASE
-            WHEN v_progress_percentage = 100 THEN NOW()
-            ELSE completed_at
-        END,
-        updated_at = NOW()
-    WHERE tid = p_enrollment_tid;
-
-    COMMIT;
-
-    -- 7. Final JSON response
-    SELECT JSON_OBJECT(
-        'status', TRUE,
-        'data', JSON_OBJECT(
-            'enrollment_tid', p_enrollment_tid,
-            'topic_tid', p_topic_tid,
-            'updated_status', p_status,
-            'progress_percentage', v_progress_percentage
-        ),
-        'message', CONCAT('Progress updated successfully. Overall progress: ', v_progress_percentage, '%')
-    ) AS data;
-END$$
-
+COMMIT;
+END //
 DELIMITER ;
+

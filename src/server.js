@@ -25,7 +25,7 @@ app.use('/learning', assessmentRoutes);
 app.use('/learning',enrollmentRoute);
 app.use('/api/learning/user', userRoutes);
 app.use('/learning', learningQuestionRoutes);
-app.use('/api/learning/track-progress', trackProgressRoutes);
+app.use('/learning', trackProgressRoutes);
 app.use('/learning', companySubscribersRoutes);
 app.use('/api/learning/courses', coursesRoutes);
 app.use('/learning', courseContentRoutes);

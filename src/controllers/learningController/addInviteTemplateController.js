@@ -20,16 +20,8 @@ const addInviteTemplate = async (req, res) => {
       [in_creator_tid, in_name, in_subject, in_body]
     );
 
-      // Handle known business logic error returned by stored procedure (e.g., duplicate name)
-    if (result[0]?.[0]?.message) {
-      return res.status(409).json({
-        status: false,
-        message: result[0][0].message,
-      });
-    }
-
     // Success response with newly created template data
-    else if (result[0]?.[0]?.data) {
+    if (result[0]?.[0]?.data) {
       return res.status(201).json({
         data: result[0][0].data,
         status: true,

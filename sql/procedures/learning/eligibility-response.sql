@@ -19,7 +19,8 @@ BEGIN
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
     ROLLBACK;
-    SELECT COALESCE(custom_error, 'An error occurred while processing your eligibility response') AS message;
+    SET custom_error= COALESCE(custom_error, 'An error occurred while processing your eligibility response');
+    SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT=custom_error;
   END;
 
   START TRANSACTION;
@@ -41,7 +42,7 @@ BEGIN
     WHERE user_tid = in_user_id AND learning_program_tid = in_program_id
   ) THEN
     SET custom_error = 'You have already submitted an eligibility response for this program';
-    SIGNAL SQLSTATE '45000';
+     SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT=custom_errror;
   END IF;
 
   -- 3. Count expected questions
@@ -65,7 +66,7 @@ BEGIN
     in_questions,
     '$[*]' COLUMNS (
       question_tid BIGINT PATH '$.question_tid',
-      response ENUM('yes','no') PATH '$.response',
+      response ENUM('0','1') PATH '$.response',
       question_id FOR ORDINALITY
     )
   ) AS q
@@ -79,10 +80,10 @@ BEGIN
 
   IF response_count = 0 THEN
     SET custom_error = 'No valid responses were inserted';
-    SIGNAL SQLSTATE '45000';
+    SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT=custom_errror;
   ELSEIF response_count != expected_questions THEN
     SET custom_error = CONCAT('Incomplete responses. Expected: ', expected_questions, ', Received: ', response_count);
-    SIGNAL SQLSTATE '45000';
+     SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT=custom_errror;
   END IF;
 
   -- 6. Evaluate eligibility

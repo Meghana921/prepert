@@ -10,7 +10,7 @@ BEGIN
             JSON_ARRAYAGG(
                 JSON_OBJECT(
                     'enrollment_id',         e.tid,
-                    'subscriber_name',       u.fullName,
+                    'subscriber_name',       u.full_Name,
                     'subscriber_email',      u.email,
                     'subscriber_phone',      u.phone,
                     'program_title',         lp.title,
@@ -26,7 +26,7 @@ BEGIN
         )
     ) AS data
     FROM dt_learning_enrollments e
-    INNER JOIN dtusers u 
+    INNER JOIN dt_users u 
         ON e.user_tid = u.tid
     INNER JOIN dt_learning_programs lp 
         ON e.learning_program_tid = lp.tid
@@ -42,4 +42,3 @@ BEGIN
 END $$
 DELIMITER ;
 
-call getCourseSubscribers(18);

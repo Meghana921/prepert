@@ -54,7 +54,6 @@ CREATE TABLE dt_learning_topics (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     module_tid BIGINT UNSIGNED NOT NULL,
     title VARCHAR(100) NOT NULL,
-    content_type ENUM('text', 'video', 'interactive') NOT NULL DEFAULT 'text',
     description TEXT,		
     content TEXT COMMENT 'Actual content or reference to content',
     sequence_number SMALLINT NOT NULL COMMENT 'Order of the topic',
@@ -68,14 +67,17 @@ CREATE TABLE dt_learning_topics (
 -- ============================================================================
 -- User subscriptions/enrollments
 
-DROP TABLE IF EXISTS dt_learning_enrollments;
+
 CREATE TABLE dt_learning_enrollments (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     user_tid BIGINT UNSIGNED NOT NULL,
     learning_program_tid BIGINT UNSIGNED NOT NULL,
     status ENUM(
-        "0","1","2","3"
-    ) NOT NULL DEFAULT '0' COMMENT "0-enrolled,1-in_progress,2-completed,3-expired",
+        'enrolled',
+        'in_progress',
+        'completed',
+        'expired'
+    ) NOT NULL DEFAULT 'enrolled',
     progress_percentage TINYINT UNSIGNED DEFAULT 0 COMMENT 'Overall completion percentage',
     enrollment_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     expires_on DATE COMMENT 'When access expires',
@@ -96,8 +98,10 @@ CREATE TABLE dt_learning_progress (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     enrollment_tid BIGINT UNSIGNED NOT NULL,
     topic_tid BIGINT UNSIGNED NOT NULL,
-    status ENUM("0","1") NOT NULL DEFAULT '0' COMMENT "0-not started 1-completed",
-    completion_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    status ENUM('not_started', 'in_progress', 'completed') NOT NULL DEFAULT 'not_started',
+    completion_date DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_enrollment_tid (enrollment_tid),
     INDEX idx_topic_tid (topic_tid),
     UNIQUE KEY uk_enrollment_topic (enrollment_tid, topic_tid)
@@ -121,6 +125,19 @@ CREATE TABLE dt_learning_questions (
 -- ============================================================================
 -- Assessment Tables
 -- ============================================================================
+DROP TABLE IF EXISTS dt_topic_assessments;
+CREATE TABLE dt_topic_assessments (
+    tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_tid BIGINT UNSIGNED NOT NULL COMMENT 'User who took the assessment',
+    topic_tid BIGINT UNSIGNED NOT NULL COMMENT 'Topic being assessed',
+    total_questions TINYINT DEFAULT 10,
+    gpt_questions_answers JSON NOT NULL COMMENT 'GPT-generated questions and correct  in JSON format',
+    user_responses JSON COMMENT 'User responses in JSON format',
+    total_score INT COMMENT '1 marks for each question',
+    taken_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'When assessment was taken',
+    INDEX idx_user (user_tid),
+    INDEX idx_topic (topic_tid)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 -- Assessments for learning programs
 DROP TABLE IF EXISTS dt_learning_assessments;
 CREATE TABLE dt_learning_assessments (
@@ -141,8 +158,9 @@ CREATE TABLE dt_assessment_questions (
     assessment_tid BIGINT UNSIGNED NOT NULL,
     question TEXT NOT NULL,
     options JSON COMMENT 'Question options in JSON format',
-    correct_option VARCHAR(50) COMMENT 'ID or value of correct option',
+    correct_option SMALLINT UNSIGNED COMMENT 'INDEX of correct option',
     score SMALLINT UNSIGNED DEFAULT 1,
+	sequence_number SMALLINT NOT NULL DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_assessment_tid (assessment_tid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
@@ -268,13 +286,14 @@ CREATE TABLE dt_invitees (
 -- Sponsorship Tables
 -- ============================================================================
 -- Company sponsorship of learning programs
-DROP TABLE IF EXISTS  dt_program_sponsorships;
 CREATE TABLE dt_program_sponsorships (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     company_user_tid BIGINT UNSIGNED NOT NULL COMMENT 'Company user providing sponsorship',
     learning_program_tid BIGINT UNSIGNED NOT NULL COMMENT 'Sponsored program',
     seats_allocated INT UNSIGNED NOT NULL DEFAULT 1 COMMENT 'Number of sponsorships',
     seats_used INT UNSIGNED DEFAULT 0 COMMENT 'Seats already assigned',
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_company_user_tid (company_user_tid),
@@ -297,21 +316,14 @@ CREATE TABLE dt_user_sponsorships (
 -- End of Learning Schema
 -- ============================================================================
 CREATE TABLE dt_users (
-    tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, -- User ID
+    id VARCHAR(30), -- unique identifier for the user (from linkedIn, Google, etc.)
+    full_Name VARCHAR(200) NOT NULL, -- Full name of the user
+    profilePicture VARCHAR(25), -- Profile picture filename or URL
+    email VARCHAR(100) NOT NULL UNIQUE, -- User's email address
+    countryCode varchar(5), -- Country code for the user's phone number
+    phone VARCHAR(15) NOT NULL UNIQUE, -- User's phone number
+    userType TINYINT UNSIGNED COMMENT 'REFERENCES mtusertype(tid)', -- User type (e.g., individual, organization)
+    createdAt TIMESTAMP -- Timestamp when the user was created
+);
 
--- Common fields for both user types
-user_type_tid TINYINT UNSIGNED NOT NULL,
-    full_name VARCHAR(200) NOT NULL,
-    email VARCHAR(100) NOT NULL UNIQUE,
-    phone VARCHAR(15) UNIQUE,
-    country_code VARCHAR(5),
-    profile_picture_url VARCHAR(255) COMMENT 'URL to profile picture or company logo',
-    language_tid INT UNSIGNED COMMENT 'Preferred language',
-    -- Individual-specific fields
-    external_id VARCHAR(50) COMMENT 'Google ID for individual users',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_email (email),
-    INDEX idx_phone (phone),
-    INDEX idx_user_type (user_type_tid)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;

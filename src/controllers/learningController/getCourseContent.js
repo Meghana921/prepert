@@ -29,21 +29,19 @@ const viewProgramWithProgress = async (req, res) => {
       });
     }
 
-    // If programData is a string (in rare cases), parse it
-    const responseData =
-      typeof programData === "string" ? JSON.parse(programData) : programData;
+
 
     // Success response
     return res.status(200).json({
       status: true,
-      data: responseData,
+      data: programData,
     });
 
   } catch (error) {
     console.error("Error fetching program with progress:", error);
     return res.status(500).json({
       status: false,
-      error: error.message || "Internal Server Error",
+      error: error.message ,
     });
   }
 };

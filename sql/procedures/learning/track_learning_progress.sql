@@ -27,7 +27,7 @@ BEGIN
 
   -- Step 3: Insert progress tracking entry
   INSERT INTO dt_learning_progress(enrollment_tid, topic_tid, status)
-  VALUES(enrollment_id, topic_id, '1');
+  VALUES(enrollment_id OR NULL, topic_id, '1');
 
   SET tid = LAST_INSERT_ID();
 
@@ -36,8 +36,8 @@ BEGIN
   SET
     progress_percentage = IFNULL(progress_percentage, 0) + progress,
     status = CASE
-               WHEN IFNULL(progress_percentage, 0) + progress >= 100 THEN 'completed'
-               ELSE 'in_progress'
+               WHEN IFNULL(progress_percentage, 0) + progress >= 99 THEN '2'
+               ELSE '1'
              END
   WHERE tid = enrollment_id;
 

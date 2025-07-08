@@ -1,12 +1,25 @@
 import { createTransport } from 'nodemailer';
 
-const sendMail = async ({ to, subject, text, html, programId, recipientName }) => {
+const sendMail = async ({
+  to,
+  subject,
+  text,
+  html,
+  programCode,
+  programTitle,
+  recipientName
+}) => {
   try {
+    const programLink = `https://prepert.vercel.app`;
+
     const signature = `
       <p>
-        Click here to enroll for the course:
-        <a href="https://prepert.vercel.app/" target="_blank">https://prepert.vercel.app/</a>
+        <a href="${programLink}" target="_blank" style="text-decoration:none; color:#3366cc;">
+          👉 Click here to enroll in the program
+        </a>
       </p>
+      <p><strong>Program Title:</strong> ${programTitle || 'N/A'}</p>
+      <p><strong>Program Code:</strong> ${programCode || 'N/A'}</p>
       <br/>
       <p style="font-size: 14px; color: #555;">
         Best regards,<br/>
@@ -29,7 +42,7 @@ const sendMail = async ({ to, subject, text, html, programId, recipientName }) =
     });
 
     const mailOptions = {
-      from: process.env.SERVER_EMAIL,
+      from: `"Talent Micro" <${process.env.SERVER_EMAIL}>`,
       to,
       subject,
       html: mailBody,
@@ -43,3 +56,4 @@ const sendMail = async ({ to, subject, text, html, programId, recipientName }) =
 };
 
 export default sendMail;
+

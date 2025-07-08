@@ -1,4 +1,3 @@
--- Procedure to add a new learning program 
 DROP PROCEDURE IF EXISTS add_learning_program;
 
 DELIMITER //
@@ -7,7 +6,7 @@ CREATE PROCEDURE add_learning_program (
     IN in_title VARCHAR(100),
     IN in_description TEXT,
     IN in_creator_id BIGINT,
-    IN in_difficulty_level TINYINT,
+    IN in_difficulty_level VARCHAR(1),  -- Changed to VARCHAR to match ENUM
     IN in_image_path VARCHAR(255),
     IN in_price DECIMAL(10, 2),
     IN in_access_period_months INT,
@@ -27,7 +26,8 @@ CREATE PROCEDURE add_learning_program (
 BEGIN
     DECLARE custom_error VARCHAR(255) DEFAULT NULL;
     DECLARE learning_program_id BIGINT;
-
+    DECLARE v_program_code VARCHAR(20);
+    
     -- Error handler for rollback and exception
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
@@ -39,16 +39,24 @@ BEGIN
     START TRANSACTION;
 
     -- Prevent duplicate programs with same title and creator
-    IF EXISTS (SELECT 1
-    FROM dt_learning_programs
-    WHERE title = in_title AND creator_tid = in_creator_id) THEN
+    IF EXISTS (SELECT 1 FROM dt_learning_programs
+              WHERE title = in_title AND creator_tid = in_creator_id) THEN
         SET custom_error = 'Program already exists. You can view or modify the existing one.';
         SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT = custom_error;
     END IF;
+    
+    -- Generate program code
+    SET v_program_code = CONCAT("PR-", DATE_FORMAT(CURRENT_DATE(), '%Y%m%d'), FLOOR(RAND()*2));
+    
+    -- Validate difficulty level
+    IF in_difficulty_level NOT IN ('0', '1', '2', '3') THEN
+        SET custom_error = 'Invalid difficulty level. Must be 0, 1, 2, or 3';
+        SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT = custom_error;
+    END IF;
 
-    -- Insert program details
+    -- Insert program details (FIXED: using correct column/variable names)
     INSERT INTO dt_learning_programs (
-        title, description, creator_tid, difficulty_level,
+        title, program_code, description, creator_tid, difficulty_level,
         image_path, price, access_period_months, available_slots,
         campus_hiring, sponsored, minimum_score,
         experience_from, experience_to, locations,
@@ -56,7 +64,7 @@ BEGIN
         eligibility_template_tid, invite_template_tid
     )
     VALUES (
-        in_title, in_description, in_creator_id, in_difficulty_level,
+        in_title, v_program_code, in_description, in_creator_id, in_difficulty_level,
         in_image_path, in_price, in_access_period_months, in_available_slots,
         in_campus_hiring, in_sponsored, in_minimum_score,
         in_experience_from, in_experience_to, in_locations,
@@ -100,8 +108,55 @@ BEGIN
     -- Return success response
     SELECT JSON_OBJECT(
         'program_id', learning_program_id,
-        'program_name', in_title
+        'program_name', in_title,
+        'program_code', v_program_code
     ) AS data;
 END //
 
 DELIMITER ;
+
+
+CALL add_learning_program(
+    'Full Stack Developer Program 2025',  -- in_title
+    'An intensive program covering frontend, backend, and deployment.',  -- in_description
+    1,  -- in_creator_id (valid user ID)
+    '3',  -- in_difficulty_level (TINYINT)
+    '/images/fullstack.png',  -- in_image_path
+    499.99,  -- in_price
+    6,  -- in_access_period_months
+    50,  -- in_available_slots
+    TRUE,  -- in_campus_hiring
+    TRUE,  -- in_sponsored
+    70,  -- in_minimum_score
+    '0',  -- in_experience_from
+    '2',  -- in_experience_to
+    'Bangalore,Hyderabad',  -- in_locations
+    'TechNova Inc.',  -- in_employer_name
+    'Thank you for applying. You may not be eligible at this time.',  -- in_regret_message
+    1,  -- in_eligibility_template_id (valid template ID)
+    1,  -- in_invite_template_id (valid template ID)
+    '[{"name":"Shashi","email":"shashikanthks017@gmail.com"},{"name":"Meghana S","email":"meghana.s921@gmail.com"}]'  -- in_invitees
+);
+
+CALL add_learning_program(
+    'Full Stack Developer Program 2025',  -- in_title
+    'An intensive program covering frontend, backend, and deployment.',  -- in_description
+    1,  -- in_creator_id
+    '2',  -- in_difficulty_level
+    '/images/fullstack.png',  -- in_image_path
+    499.99,  -- in_price
+    6,  -- in_access_period_months
+    50,  -- in_available_slots
+    TRUE,  -- in_campus_hiring
+    TRUE,  -- in_sponsored
+    70,  -- in_minimum_score
+    '0',  -- in_experience_from
+    '2',  -- in_experience_to
+    'Bangalore,Hyderabad',  -- in_locations
+    'TechNova Inc.',  -- in_employer_name
+    'Thank you for applying. You may not be eligible at this time.',  -- in_regret_message
+    1,  -- in_eligibility_template_id
+    1,  -- in_invite_template_id
+    '[{"name":"Shashi","email":"shashikanthks017@gmail.com"},{"name":"Meghana S","email":"meghana.s921@gmail.com"}]'
+);
+

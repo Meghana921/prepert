@@ -7,12 +7,19 @@ CREATE PROCEDURE view_program(
 BEGIN 
     DECLARE program_exists INT DEFAULT 0;
     DECLARE custom_error VARCHAR(255) DEFAULT NULL;
+    DECLARE error_message VARCHAR(255);
+    -- Error handler for rollback and exception 
+ DECLARE EXIT HANDLER FOR SQLEXCEPTION
+BEGIN
+    GET DIAGNOSTICS CONDITION 1
+    error_message= MESSAGE_TEXT;
+    ROLLBACK;
+    SET custom_error = COALESCE(custom_error,error_message);
+    SIGNAL SQLSTATE '45000'
+    
+        SET MESSAGE_TEXT = custom_error;
+END;
 
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-		SET custom_error = COALESCE(custom_error, 'Error fetching program details');
-        SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT = custom_error;
-    END;
 
     -- Check if program exists and belongs to the creator
    IF NOT EXISTS ( SELECT 1 
@@ -44,13 +51,13 @@ BEGIN
                 'employer_name', lp.employer_name,
                 'regret_message', lp.regret_message,
                 'eligibility_template', (
-                    SELECT et.name 
+                    SELECT et.tid
                     FROM dt_eligibility_templates et 
                     WHERE et.tid = lp.eligibility_template_tid 
                     LIMIT 1
                 ),
                 'invite_template', (
-                    SELECT it.name 
+                    SELECT it.tid 
                     FROM dt_invite_templates it 
                     WHERE it.tid = lp.invite_template_tid 
                     LIMIT 1

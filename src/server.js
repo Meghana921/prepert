@@ -7,9 +7,7 @@ import userRoutes from "./routes/learningRoutes/userRoutes.js";
 import learningQuestionRoutes from "./routes/learningRoutes/learningQuestionRoutes.js";
 import trackProgressRoutes from "./routes/learningRoutes/trackProgressRoutes.js";
 import companySubscribersRoutes from "./routes/learningRoutes/companySubscribersRoutes.js";
-import coursesRoutes from "./routes/learningRoutes/coursesRoutes.js";
 import courseContentRoutes from "./routes/learningRoutes/courseContentRoutes.js";
-import courseContentWithProgressRoutes from "./routes/learningRoutes/courseContentWithProgressRoutes.js";
 import inviteTemplateRoutes from "./routes/learningRoutes/inviteTemplateRoutes.js";
 import getCertificateRoutes from "./routes/learningRoutes/getCertificateRoutes.js";
 import enrollmentRoute from "./routes/learningRoutes/enrollementRoute.js"

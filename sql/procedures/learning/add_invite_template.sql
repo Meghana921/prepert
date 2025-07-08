@@ -11,13 +11,18 @@ CREATE PROCEDURE add_invite_template(
 BEGIN
   DECLARE custom_error VARCHAR(255) DEFAULT NULL;
 
-  -- Error handler: Rollback and raise an exception with a message
-  DECLARE EXIT HANDLER FOR SQLEXCEPTION
-  BEGIN
+  DECLARE error_message VARCHAR(255);
+    -- Error handler for rollback and exception
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+BEGIN
+    GET DIAGNOSTICS CONDITION 1
+    error_message= MESSAGE_TEXT;
     ROLLBACK;
-    SET custom_error = COALESCE(custom_error, 'An error occurred while inserting template');
-    SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT = custom_error;
-  END;
+    SET custom_error = COALESCE(custom_error,error_message);
+    SIGNAL SQLSTATE '45000'
+    
+        SET MESSAGE_TEXT = custom_error;
+END;
 
   -- Begin transaction
   START TRANSACTION;

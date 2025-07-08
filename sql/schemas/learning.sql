@@ -93,12 +93,10 @@ CREATE TABLE dt_learning_enrollments (
 DROP TABLE IF EXISTS dt_learning_progress;
 CREATE TABLE dt_learning_progress (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    enrollment_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_enrollments(tid)",
+    enrollment_tid BIGINT UNSIGNED  COMMENT "REFERENCES dt_learning_enrollments(tid)",
     topic_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_topics(tid)",
     status ENUM('0', '1', '2') NOT NULL DEFAULT '0' COMMENT "0:not_started,1:in_progress,2:completed",
-    completion_date DATETIME,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    completion_date DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_enrollment_tid (enrollment_tid),
     INDEX idx_topic_tid (topic_tid),
     UNIQUE KEY uk_enrollment_topic (enrollment_tid, topic_tid)
@@ -218,6 +216,7 @@ CREATE TABLE dt_eligibility_questions (
     deciding_answer ENUM('0', '1') NOT NULL DEFAULT '1' COMMENT "0:no,1:yes",
     sequence_number SMALLINT NOT NULL DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_template_tid (template_tid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
@@ -275,7 +274,7 @@ CREATE TABLE dt_invitees (
     INDEX idx_email (email),
     INDEX idx_status (status)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
-
+INSERT INTO  dt_invitees( learning_program_tid, name, email) VALUES(1,"Meghana","meghana.s921@gmail.com");
 -- ============================================================================
 -- Sponsorship Tables
 -- ============================================================================
@@ -286,8 +285,6 @@ CREATE TABLE dt_program_sponsorships (
     learning_program_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_programs(tid)",
     seats_allocated INT UNSIGNED NOT NULL DEFAULT 1,
     seats_used INT UNSIGNED DEFAULT 0,
-    start_date DATE NOT NULL,
-    end_date DATE NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_company_user_tid (company_user_tid),
@@ -321,3 +318,5 @@ CREATE TABLE dt_users (
     userType TINYINT UNSIGNED COMMENT 'REFERENCES mtusertype(tid)',
     createdAt TIMESTAMP
 );
+
+INSERT INTO dt_users(full_Name,email,phone)VALUES("Meghana","meghana.s921@gmail.com",123456789);

@@ -9,7 +9,7 @@ const viewProgramController = async (req, res) => {
     if (!program_id) {
       return res.status(400).json({
         status: false,
-        error: "Required fields missing!"
+        error: "Required fields missing!!"
       });
     }
 

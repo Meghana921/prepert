@@ -13,14 +13,19 @@ BEGIN
   DECLARE current_enrollments INT;
   DECLARE email_id VARCHAR(100);
   DECLARE custom_error VARCHAR(255);
-
-  -- Error handling: If any SQL exception occurs, rollback and raise custom error
-  DECLARE EXIT HANDLER FOR SQLEXCEPTION
-  BEGIN
+  DECLARE  program_sponsorship_id BIGINT;
+   DECLARE error_message VARCHAR(255);
+    -- Error handler for rollback and exception
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+BEGIN
+    GET DIAGNOSTICS CONDITION 1
+    error_message= MESSAGE_TEXT;
     ROLLBACK;
-    SET custom_error = COALESCE(custom_error, 'Failed to enroll due to a database error');
-    SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT = custom_error;
-  END;
+    SET custom_error = COALESCE(custom_error,error_message);
+    SIGNAL SQLSTATE '45000'
+    
+        SET MESSAGE_TEXT = custom_error;
+END;
 
 
   START TRANSACTION;
@@ -87,6 +92,11 @@ BEGIN
     UPDATE dt_program_sponsorships
     SET seats_used = seats_used + 1
     WHERE learning_program_tid = in_program_id;
+    
+    SELECT tid INTO program_sponsorship_id FROM dt_program_sponsorships
+    WHERE learning_program_tid= in_program_id;
+    
+    INSERT INTO dt_user_sponsorships(program_sponsorship_tid,user_tid,enrollment_tid) VALUES( program_sponsorship_id,in_user_id,enrollment_id);
   END IF;
 
   -- 7. Update the invitee record with enrollment and response time if exists
@@ -98,7 +108,8 @@ BEGIN
     UPDATE dt_invitees
     SET 
       enrollment_tid = enrollment_id,
-      response_at = CURRENT_TIMESTAMP
+      response_at = CURRENT_TIMESTAMP,
+      status ='1'
     WHERE 
       learning_program_tid = in_program_id 
       AND email = email_id;

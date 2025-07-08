@@ -11,15 +11,18 @@ BEGIN
     -- Variable declarations
     DECLARE custom_error VARCHAR(255) DEFAULT NULL;
     DECLARE eligibility_template_tid BIGINT;
-
+    DECLARE error_message VARCHAR(255);
     -- Error handler: rollback and raise error with custom or default message
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION 
-    BEGIN
-        ROLLBACK;
-        SET custom_error=COALESCE(custom_error, 'An error occurred while inserting the template');
-		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = custom_error ;
-    END;
-
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+BEGIN
+    GET DIAGNOSTICS CONDITION 1
+    error_message= MESSAGE_TEXT;
+    ROLLBACK;
+    SET custom_error = COALESCE(custom_error,error_message);
+    SIGNAL SQLSTATE '45000'
+    
+        SET MESSAGE_TEXT = custom_error;
+END;
     -- Start transaction
     START TRANSACTION;
 

@@ -9,13 +9,18 @@ CREATE PROCEDURE update_invite_template(
 )
 BEGIN
   DECLARE custom_error VARCHAR(255);
-
-  DECLARE EXIT HANDLER FOR SQLEXCEPTION
-  BEGIN
+DECLARE error_message VARCHAR(255);
+    -- Error handler for rollback and exception
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+BEGIN
+    GET DIAGNOSTICS CONDITION 1
+    error_message= MESSAGE_TEXT;
     ROLLBACK;
-    SELECT COALESCE(custom_error, 'An error occurred while updating the template')AS message;
-  END;
-
+    SET custom_error = COALESCE(custom_error,error_message);
+    SIGNAL SQLSTATE '45000'
+    
+        SET MESSAGE_TEXT = custom_error;
+END;
   START TRANSACTION;
 
   -- Check if the template exists and belongs to the creator

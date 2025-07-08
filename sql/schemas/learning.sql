@@ -1,7 +1,8 @@
 DROP DATABASE IF EXISTS prepertdevdb;
 CREATE DATABASE prepertdevdb
-CHARACTER SET utf8mb4 COLLATE  utf8mb4_unicode_ci;
+CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE prepertdevdb;
+
 -- ============================================================================
 -- Core Learning Program Tables
 -- ============================================================================
@@ -9,10 +10,11 @@ USE prepertdevdb;
 DROP TABLE IF EXISTS dt_learning_programs;
 CREATE TABLE dt_learning_programs (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    program_code VARCHAR(20) NOT NULL,
     title VARCHAR(100) NOT NULL,
     description TEXT,
-    creator_tid BIGINT UNSIGNED NOT NULL,
-    difficulty_level ENUM('low', 'medium', 'high', 'very_high') DEFAULT 'medium',
+    creator_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_users(tid)",
+    difficulty_level ENUM('0', '1', '2', '3') COMMENT '0-low, 1-medium, 2-high, 3-very_high',
     image_path VARCHAR(255),
     price DECIMAL(10, 2) DEFAULT 0.00,
     access_period_months INT DEFAULT 12,
@@ -25,8 +27,8 @@ CREATE TABLE dt_learning_programs (
     locations VARCHAR(255),
     employer_name VARCHAR(100),
     regret_message TEXT,
-    eligibility_template_tid BIGINT UNSIGNED,
-    invite_template_tid BIGINT UNSIGNED,
+    eligibility_template_tid BIGINT UNSIGNED COMMENT "REFERENCES dt_eligibility_templates(tid)",
+    invite_template_tid BIGINT UNSIGNED COMMENT "REFERENCES dt_invite_templates(tid)",
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_creator_tid (creator_tid),
@@ -38,7 +40,7 @@ CREATE TABLE dt_learning_programs (
 DROP TABLE IF EXISTS dt_learning_modules;
 CREATE TABLE dt_learning_modules (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    learning_program_tid BIGINT UNSIGNED NOT NULL,
+    learning_program_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_programs(tid)",
     title VARCHAR(100) NOT NULL,
     description TEXT,
     sequence_number SMALLINT NOT NULL COMMENT 'Order of the module',
@@ -47,37 +49,32 @@ CREATE TABLE dt_learning_modules (
     INDEX idx_learning_program_tid (learning_program_tid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
-
--- Topics (individual lessons within modules)
+-- Topics (individual topics within modules)
 DROP TABLE IF EXISTS dt_learning_topics;
 CREATE TABLE dt_learning_topics (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    module_tid BIGINT UNSIGNED NOT NULL,
+    module_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_modules(tid)",
     title VARCHAR(100) NOT NULL,
     description TEXT,		
-    content TEXT COMMENT 'Actual content or reference to content',
+    content TEXT COMMENT 'Actual content',
     sequence_number SMALLINT NOT NULL COMMENT 'Order of the topic',
-    progress_weight INT DEFAULT 1 COMMENT 'Weight in progress calculations',
+    progress_weight INT COMMENT 'Weight in progress calculations',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_module_tid (module_tid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
 -- ============================================================================
 -- Enrollment & Progress Tables
 -- ============================================================================
+
 -- User subscriptions/enrollments
-
-
+DROP TABLE IF EXISTS dt_learning_enrollments;
 CREATE TABLE dt_learning_enrollments (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    user_tid BIGINT UNSIGNED NOT NULL,
-    learning_program_tid BIGINT UNSIGNED NOT NULL,
-    status ENUM(
-        'enrolled',
-        'in_progress',
-        'completed',
-        'expired'
-    ) NOT NULL DEFAULT 'enrolled',
+    user_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_users(tid)",
+    learning_program_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_programs(tid)",
+    status ENUM('0','1','2','3') NOT NULL DEFAULT '0' COMMENT '0:enrolled,1:in_progress,2:completed,3:expired',
     progress_percentage TINYINT UNSIGNED DEFAULT 0 COMMENT 'Overall completion percentage',
     enrollment_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     expires_on DATE COMMENT 'When access expires',
@@ -96,9 +93,9 @@ CREATE TABLE dt_learning_enrollments (
 DROP TABLE IF EXISTS dt_learning_progress;
 CREATE TABLE dt_learning_progress (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    enrollment_tid BIGINT UNSIGNED NOT NULL,
-    topic_tid BIGINT UNSIGNED NOT NULL,
-    status ENUM('not_started', 'in_progress', 'completed') NOT NULL DEFAULT 'not_started',
+    enrollment_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_enrollments(tid)",
+    topic_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_topics(tid)",
+    status ENUM('0', '1', '2') NOT NULL DEFAULT '0' COMMENT "0:not_started,1:in_progress,2:completed",
     completion_date DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -111,8 +108,8 @@ CREATE TABLE dt_learning_progress (
 DROP TABLE IF EXISTS dt_learning_questions;
 CREATE TABLE dt_learning_questions (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    enrollment_tid BIGINT UNSIGNED NOT NULL,
-    topic_tid BIGINT UNSIGNED NOT NULL COMMENT 'Associated with specific topic',
+    enrollment_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_enrollments(tid)",
+    topic_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_topics(tid)",
     question TEXT NOT NULL,
     answer TEXT,
     asked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -122,27 +119,30 @@ CREATE TABLE dt_learning_questions (
     INDEX idx_enrollment_tid (enrollment_tid),
     INDEX idx_topic_tid (topic_tid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
 -- ============================================================================
 -- Assessment Tables
 -- ============================================================================
+
 DROP TABLE IF EXISTS dt_topic_assessments;
 CREATE TABLE dt_topic_assessments (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    user_tid BIGINT UNSIGNED NOT NULL COMMENT 'User who took the assessment',
-    topic_tid BIGINT UNSIGNED NOT NULL COMMENT 'Topic being assessed',
+    user_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_users(tid)",
+    topic_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_topics(tid)",
     total_questions TINYINT DEFAULT 10,
-    gpt_questions_answers JSON NOT NULL COMMENT 'GPT-generated questions and correct  in JSON format',
+    gpt_questions_answers JSON NOT NULL COMMENT 'GPT-generated questions and correct in JSON format',
     user_responses JSON COMMENT 'User responses in JSON format',
     total_score INT COMMENT '1 marks for each question',
     taken_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'When assessment was taken',
     INDEX idx_user (user_tid),
     INDEX idx_topic (topic_tid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
 -- Assessments for learning programs
 DROP TABLE IF EXISTS dt_learning_assessments;
 CREATE TABLE dt_learning_assessments (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    learning_program_tid BIGINT UNSIGNED NOT NULL,
+    learning_program_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_programs(tid)",
     title VARCHAR(100) NOT NULL,
     description TEXT,
     question_count SMALLINT UNSIGNED DEFAULT 10,
@@ -151,26 +151,28 @@ CREATE TABLE dt_learning_assessments (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_learning_program_tid (learning_program_tid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
 -- Assessment questions
 DROP TABLE IF EXISTS dt_assessment_questions;
 CREATE TABLE dt_assessment_questions (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    assessment_tid BIGINT UNSIGNED NOT NULL,
+    assessment_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_assessments(tid)",
     question TEXT NOT NULL,
     options JSON COMMENT 'Question options in JSON format',
-    correct_option SMALLINT UNSIGNED COMMENT 'INDEX of correct option',
+    correct_option SMALLINT UNSIGNED COMMENT 'Index of correct option',
     score SMALLINT UNSIGNED DEFAULT 1,
-	sequence_number SMALLINT NOT NULL DEFAULT 0,
+    sequence_number SMALLINT NOT NULL DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_assessment_tid (assessment_tid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
 -- User assessment attempts
-DROP TABLE IF EXISTS dt_assessment_attempts ;
+DROP TABLE IF EXISTS dt_assessment_attempts;
 CREATE TABLE dt_assessment_attempts (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    assessment_tid BIGINT UNSIGNED NOT NULL,
-    user_tid BIGINT UNSIGNED NOT NULL,
-    enrollment_tid BIGINT UNSIGNED COMMENT 'If taken as part of enrollment',
+    assessment_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_assessments(tid)",
+    user_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_users(tid)",
+    enrollment_tid BIGINT UNSIGNED COMMENT "REFERENCES dt_learning_enrollments(tid)", -- 'If taken as part of enrollment'
     score SMALLINT UNSIGNED DEFAULT 0,
     passed BOOLEAN DEFAULT FALSE,
     started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -180,12 +182,13 @@ CREATE TABLE dt_assessment_attempts (
     INDEX idx_user_tid (user_tid),
     INDEX idx_enrollment_tid (enrollment_tid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
 -- User assessment answers
 DROP TABLE IF EXISTS dt_assessment_responses;
 CREATE TABLE dt_assessment_responses (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    attempt_tid BIGINT UNSIGNED NOT NULL,
-    question_tid BIGINT UNSIGNED NOT NULL,
+    attempt_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_assessment_attempts(tid)",
+    question_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_assessment_questions(tid)",
     selected_option VARCHAR(50),
     is_correct BOOLEAN DEFAULT FALSE,
     score SMALLINT UNSIGNED DEFAULT 0,
@@ -194,71 +197,59 @@ CREATE TABLE dt_assessment_responses (
     INDEX idx_question_tid (question_tid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
--- Topic-based assessment table
-DROP TABLE IF EXISTS dt_topic_assessments;
-CREATE TABLE dt_topic_assessments (
-    tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    user_tid BIGINT UNSIGNED NOT NULL COMMENT 'User who took the assessment',
-    topic_tid BIGINT UNSIGNED NOT NULL COMMENT 'Topic being assessed',
-    total_questions TINYINT DEFAULT 10,
-    gpt_questions_answers JSON NOT NULL COMMENT 'GPT-generated questions and correct  in JSON format',
-    user_responses JSON COMMENT 'User responses in JSON format',
-    total_score INT COMMENT '1 marks for each question',
-    taken_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'When assessment was taken',
-    INDEX idx_user (user_tid),
-    INDEX idx_topic (topic_tid)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
-
 -- ============================================================================
 -- Eligibility & Invite Templates
 -- ============================================================================
--- Eligibility templates that can be reused across programs
+
 CREATE TABLE dt_eligibility_templates (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    creator_tid BIGINT UNSIGNED NOT NULL,
+    creator_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_users(tid)",
     name VARCHAR(100) NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_creator_tid (creator_tid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
--- Individual eligibility questions within templates
+
+DROP TABLE IF EXISTS dt_eligibility_questions;
 CREATE TABLE dt_eligibility_questions (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    template_tid BIGINT UNSIGNED NOT NULL,
+    template_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES  dt_eligibility_templates(tid)",
     question TEXT NOT NULL,
-    deciding_answer ENUM('yes', 'no') NOT NULL DEFAULT 'yes',
+    deciding_answer ENUM('0', '1') NOT NULL DEFAULT '1' COMMENT "0:no,1:yes",
     sequence_number SMALLINT NOT NULL DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_template_tid (template_tid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
--- User responses to eligibility questions
+
+DROP TABLE IF EXISTS dt_eligibility_responses;
 CREATE TABLE dt_eligibility_responses (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    user_tid BIGINT UNSIGNED NOT NULL,
-    learning_program_tid BIGINT UNSIGNED NOT NULL,
-    question_tid BIGINT UNSIGNED NOT NULL,
-    answer ENUM('yes', 'no') NOT NULL,
+    user_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_users(tid)",
+    learning_program_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_programs(tid)",
+    question_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_eligibility_questions(tid)",
+    answer ENUM('0', '1') NOT NULL COMMENT "0:no,1:yes", 
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_user_tid (user_tid),
     INDEX idx_learning_program_tid (learning_program_tid),
     INDEX idx_question_tid (question_tid),
     UNIQUE KEY uk_user_program_question (user_tid, learning_program_tid, question_tid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
--- Results of eligibility tests
+
+DROP TABLE IF EXISTS dt_eligibility_results;
 CREATE TABLE dt_eligibility_results (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    user_tid BIGINT UNSIGNED NOT NULL,
-    learning_program_tid BIGINT UNSIGNED NOT NULL,
+    user_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_users(tid)",
+    learning_program_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_programs(tid)",
     passed BOOLEAN DEFAULT FALSE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_user_tid (user_tid),
     INDEX idx_learning_program_tid (learning_program_tid),
     UNIQUE KEY uk_user_program (user_tid, learning_program_tid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
--- Invite templates for sending invitations to programs
+
 CREATE TABLE dt_invite_templates (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    creator_tid BIGINT UNSIGNED NOT NULL,
+    creator_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_users(tid)",
     name VARCHAR(100) NOT NULL,
     subject VARCHAR(255) NOT NULL,
     body TEXT NOT NULL,
@@ -266,32 +257,35 @@ CREATE TABLE dt_invite_templates (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_creator_tid (creator_tid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
--- People invited to learning programs
+
+DROP TABLE IF EXISTS dt_invitees;
 CREATE TABLE dt_invitees (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    learning_program_tid BIGINT UNSIGNED NOT NULL,
+    learning_program_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_programs(tid)",
     name VARCHAR(100) NOT NULL,
     email VARCHAR(255) NOT NULL,
-    status ENUM('invited', 'accepted', 'declined', 'expired') NOT NULL DEFAULT 'invited',
+    email_status ENUM("0","1","2") DEFAULT "0" COMMENT "0:pending,1:sent,2:failed",
+    status ENUM('0', '1', '2') COMMENT "0:invited,1:enrolled,2:expired",
     invite_sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     response_at DATETIME,
-    enrollment_tid BIGINT UNSIGNED COMMENT 'Created enrollment if accepted',
+    enrollment_tid BIGINT UNSIGNED COMMENT "REFERENCES dt_learning_enrollments(tid)", -- 'Created enrollment if accepted'
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_learning_program_tid (learning_program_tid),
     INDEX idx_email (email),
     INDEX idx_status (status)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
 -- ============================================================================
 -- Sponsorship Tables
 -- ============================================================================
--- Company sponsorship of learning programs
+DROP TABLE IF EXISTS dt_program_sponsorships ;
 CREATE TABLE dt_program_sponsorships (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    company_user_tid BIGINT UNSIGNED NOT NULL COMMENT 'Company user providing sponsorship',
-    learning_program_tid BIGINT UNSIGNED NOT NULL COMMENT 'Sponsored program',
-    seats_allocated INT UNSIGNED NOT NULL DEFAULT 1 COMMENT 'Number of sponsorships',
-    seats_used INT UNSIGNED DEFAULT 0 COMMENT 'Seats already assigned',
+    company_user_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_users(tid)",
+    learning_program_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_programs(tid)",
+    seats_allocated INT UNSIGNED NOT NULL DEFAULT 1,
+    seats_used INT UNSIGNED DEFAULT 0,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -300,30 +294,30 @@ CREATE TABLE dt_program_sponsorships (
     INDEX idx_learning_program_tid (learning_program_tid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
--- User sponsorship offers and acceptance
 DROP TABLE IF EXISTS dt_user_sponsorships;
 CREATE TABLE dt_user_sponsorships (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    program_sponsorship_tid BIGINT UNSIGNED NOT NULL,
-    user_tid BIGINT UNSIGNED NOT NULL,
-    enrollment_tid BIGINT UNSIGNED COMMENT 'Created enrollment if accepted',
+    program_sponsorship_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_program_sponsorships(tid)",
+    user_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_users(tid)",
+    enrollment_tid BIGINT UNSIGNED COMMENT "REFERENCES dt_learning_enrollments(tid)", -- 'Created enrollment if accepted'
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_program_sponsorship_tid (program_sponsorship_tid),
     INDEX idx_user_tid (user_tid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
 -- ============================================================================
 -- End of Learning Schema
 -- ============================================================================
+DROP TABLE IF EXISTS  dt_users;
 CREATE TABLE dt_users (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, -- User ID
-    id VARCHAR(30), -- unique identifier for the user (from linkedIn, Google, etc.)
-    full_Name VARCHAR(200) NOT NULL, -- Full name of the user
-    profilePicture VARCHAR(25), -- Profile picture filename or URL
-    email VARCHAR(100) NOT NULL UNIQUE, -- User's email address
-    countryCode varchar(5), -- Country code for the user's phone number
-    phone VARCHAR(15) NOT NULL UNIQUE, -- User's phone number
-    userType TINYINT UNSIGNED COMMENT 'REFERENCES mtusertype(tid)', -- User type (e.g., individual, organization)
-    createdAt TIMESTAMP -- Timestamp when the user was created
+    id VARCHAR(30), -- unique identifier for the user (from LinkedIn, Google, etc.)
+    full_Name VARCHAR(200) NOT NULL,
+    profilePicture VARCHAR(25),
+    email VARCHAR(100) NOT NULL UNIQUE,
+    countryCode varchar(5),
+    phone VARCHAR(15) NOT NULL UNIQUE,
+    userType TINYINT UNSIGNED COMMENT 'REFERENCES mtusertype(tid)',
+    createdAt TIMESTAMP
 );
-

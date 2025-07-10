@@ -6,7 +6,7 @@ const pool = mysql.createPool({
   host: process.env.HOST_NAME || "localhost",
   user: process.env.USER_NAME || "root",
   password: process.env.PASSWORD || "mysql",
-  database: process.env.DB_NAME || "zz",
+  database: process.env.DB_NAME || "n2",
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
@@ -16,7 +16,7 @@ const testConnection = async () => {
   let connection;
   try {
     connection = await pool.getConnection();
-    console.log("Successfully connected to database");
+    console.log("Successfully connected to database n2");
   } catch (err) {
     console.error("Error connecting to the database:", err);
   } finally {

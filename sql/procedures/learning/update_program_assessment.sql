@@ -12,10 +12,29 @@ CREATE PROCEDURE update_program_assessment (
 BEGIN
     -- Variable to track how many questions were inserted
     DECLARE questions_added INT DEFAULT 0;
+    DECLARE custom_error VARCHAR(255);
+     DECLARE error_message VARCHAR(255);
+    -- Error handler for rollback and exception
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+BEGIN
+	ROLLBACK;
+    GET DIAGNOSTICS CONDITION 1
+    error_message= MESSAGE_TEXT;
+    SET custom_error = COALESCE(custom_error,error_message);
+    SIGNAL SQLSTATE '45000'
+    
+        SET MESSAGE_TEXT = custom_error;
+END;
 
     -- Start a transaction to ensure atomicity
     START TRANSACTION;
-
+-- check if assessment exists
+  IF NOT EXISTS (SELECT 1
+  FROM dt_learning_assessments
+  WHERE tid =  in_assessment_id)THEN
+    SET custom_error = 'Assessment not found!';
+    SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT=custom_error;
+  END IF;
     -- Step 1: Update assessment information in dt_learning_assessments
     UPDATE dt_learning_assessments
     SET
@@ -72,3 +91,4 @@ BEGIN
 END;
 //
 DELIMITER ;
+

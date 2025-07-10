@@ -1,10 +1,10 @@
-DROP DATABASE IF EXISTS prepertdevdb;
-CREATE DATABASE prepertdevdb
+DROP DATABASE IF EXISTS n2;
+CREATE DATABASE n2
 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE prepertdevdb;
+USE n2;
 
 -- ============================================================================
--- Core Learning Program Tables
+-- Core Learning Program Tables 
 -- ============================================================================
 -- Main learning program table
 DROP TABLE IF EXISTS dt_learning_programs;

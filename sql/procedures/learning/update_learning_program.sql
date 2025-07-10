@@ -20,7 +20,8 @@ CREATE PROCEDURE update_learning_program(
   IN in_employer_name VARCHAR(100),
   IN in_regret_message TEXT, 
   IN in_eligibility_template_id BIGINT,
-  IN in_invite_template_id BIGINT
+  IN in_invite_template_id BIGINT,
+  IN in_public BOOLEAN
 )
 BEGIN
   DECLARE custom_error VARCHAR(255);
@@ -29,15 +30,15 @@ BEGIN
  DECLARE error_message VARCHAR(255);
     -- Error handler for rollback and exception
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
-BEGIN
-    GET DIAGNOSTICS CONDITION 1
-    error_message= MESSAGE_TEXT;
-    ROLLBACK;
-    SET custom_error = COALESCE(custom_error,error_message);
-    SIGNAL SQLSTATE '45000'
-    
-        SET MESSAGE_TEXT = custom_error;
-END;
+	BEGIN
+		GET DIAGNOSTICS CONDITION 1
+		error_message= MESSAGE_TEXT;
+		ROLLBACK;
+		SET custom_error = COALESCE(custom_error,error_message);
+		SIGNAL SQLSTATE '45000'
+		
+			SET MESSAGE_TEXT = custom_error;
+	END;
 
   START TRANSACTION;
 
@@ -72,7 +73,8 @@ END;
     employer_name = in_employer_name,
     regret_message = in_regret_message,
     eligibility_template_tid = in_eligibility_template_id,
-    invite_template_tid = in_invite_template_id
+    invite_template_tid = in_invite_template_id,
+    is_public = in_public 
   WHERE tid = in_program_id;
 
 IF EXISTS (SELECT COUNT(tid) AS cnt FROM dt_learning_programs

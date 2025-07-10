@@ -1,9 +1,10 @@
 import { pool } from "../../config/db.js";
 
-const addProgram = async (req, res) => {
+const  updateLearningProgram = async (req, res) => {
   try {
     // Destructure and extract all input parameters from request body
     const {
+      program_tid : in_program_id,
       title: in_title,
       description: in_description,
       creator_tid: in_creator_id,
@@ -22,6 +23,7 @@ const addProgram = async (req, res) => {
       regret_message: in_regret_message = null,
       eligibility_template_tid: in_eligibility_template_id = null,
       invite_template_tid: in_invite_template_id = null,
+      is_public  : in_public = null
     } = req.body;
 
     // Validate required fields
@@ -39,8 +41,9 @@ const addProgram = async (req, res) => {
 
     // Execute stored procedure with 18 input parameters
     const [result] = await pool.query(
-      `CALL add_learning_program(${Array(18).fill("?").join(",")})`,
+      `CALL update_learning_program(${Array(20).fill("?").join(",")})`,
       [
+        in_program_id,
         in_title,
         in_description,
         in_creator_id,
@@ -59,6 +62,7 @@ const addProgram = async (req, res) => {
         in_regret_message,
         in_eligibility_template_id,
         in_invite_template_id,
+        in_public
       ]
     );
 
@@ -69,7 +73,7 @@ const addProgram = async (req, res) => {
     res.status(200).json({
       status: true,
       data: programData,
-      message: "Program created successfully!",
+      message: "Program updated successfully!",
     });
   } catch (error) {
     // Handle database errors and unexpected failures
@@ -77,4 +81,4 @@ const addProgram = async (req, res) => {
   }
 };
 
-export default addProgram;
+export default updateLearningProgram;

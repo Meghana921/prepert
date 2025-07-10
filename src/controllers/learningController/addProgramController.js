@@ -22,6 +22,7 @@ const addProgram = async (req, res) => {
       regret_message: in_regret_message = null,
       eligibility_template_tid: in_eligibility_template_id = null,
       invite_template_tid: in_invite_template_id = null,
+      is_public : in_public = null
     } = req.body;
 
     // Validating required fields
@@ -39,7 +40,7 @@ const addProgram = async (req, res) => {
 
     // Call stored procedure to create the learning program
     const [result] = await pool.query(
-      `CALL add_learning_program(${Array(18).fill("?").join(",")})`,
+      `CALL add_learning_program(${Array(19).fill("?").join(",")})`,
       [
         in_title,
         in_description,
@@ -59,6 +60,7 @@ const addProgram = async (req, res) => {
         in_regret_message,
         in_eligibility_template_id,
         in_invite_template_id,
+        in_public
       ]
     );
 

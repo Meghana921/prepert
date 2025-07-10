@@ -14,13 +14,17 @@ BEGIN
     DECLARE assessment_id BIGINT UNSIGNED;
     DECLARE questions_added INT UNSIGNED DEFAULT 0;
     DECLARE custom_error VARCHAR(255);
-
+	DECLARE error_message VARCHAR(255);
+    -- Error handler for rollback and exception
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-            SET custom_error =  COALESCE(custom_error, 'An error occurred during assessment creation');
-            SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT=custom_error;
-    END;
+	BEGIN
+		ROLLBACK;
+		GET DIAGNOSTICS CONDITION 1
+		error_message= MESSAGE_TEXT;
+		SET custom_error = COALESCE(custom_error,error_message);
+		SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = custom_error;
+	END;
 
     START TRANSACTION;
 
@@ -66,7 +70,6 @@ BEGIN
             correct_option,
             score,
             sequence_number
-            
         )
         SELECT
             assessment_id,

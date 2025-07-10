@@ -9,7 +9,8 @@ const addEligibilityTemplate = async (req, res) => {
       template_name: in_template_name,
       eligibility_questions: in_eligibility_questions,
     } = req.body;
-
+    // const in_creator_id = req.users.users.uid;
+     
     // Validate required fields
     if (!in_creator_id || !in_template_name || !in_eligibility_questions) {
       return res.status(400).json({

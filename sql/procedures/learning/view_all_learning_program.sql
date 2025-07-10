@@ -46,7 +46,7 @@ BEGIN
                 LEFT JOIN dt_learning_modules m     ON lp.tid = m.learning_program_tid
 
                 -- Only include programs that have a creator assigned
-                WHERE lp.creator_tid IS NOT NULL
+                WHERE lp.creator_tid IS NOT NULL AND is_public IS TRUE
 
                 -- Group by program to aggregate counts correctly
                 GROUP BY lp.tid

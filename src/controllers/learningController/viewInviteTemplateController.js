@@ -36,15 +36,8 @@ const viewInviteTemplate = async (req, res) => {
       });
     }
 
-    // If response format was not as expected
-    else {
-      return res.status(500).json({
-        status: false,
-        error: "Unexpected response from stored procedure"
-      });
-    }
   } catch (error) {
-    console.error("Error in viewEligibilityTemplate:", error);
+   // Catch and return internal server errors
     return res.status(500).json({
       status: false,
       error: error.message,

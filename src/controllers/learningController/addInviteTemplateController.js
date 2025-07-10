@@ -29,13 +29,6 @@ const addInviteTemplate = async (req, res) => {
       });
     }
 
-    // Fallback for any unexpected stored procedure response
-    else {
-      return res.status(500).json({
-        status: false,
-        error: "Unexpected response from stored procedure"
-      });
-    }
   } catch (error) {
     // Catch and handle any internal server errors
     console.error("Error in addInviteTemplate:", error);

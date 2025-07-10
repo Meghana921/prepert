@@ -1,6 +1,7 @@
 DROP PROCEDURE IF EXISTS update_invite_template;
 DELIMITER $$
 
+-- Updates an existing invitation template with new details
 CREATE PROCEDURE update_invite_template(
   IN in_template_id   BIGINT,
   IN in_new_name      VARCHAR(100),
@@ -10,7 +11,7 @@ CREATE PROCEDURE update_invite_template(
 BEGIN
   DECLARE custom_error VARCHAR(255);
 DECLARE error_message VARCHAR(255);
-    -- Error handler for rollback and exception
+    -- Error handler for transaction rollback on failure
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
 BEGIN
     GET DIAGNOSTICS CONDITION 1
@@ -23,7 +24,7 @@ BEGIN
 END;
   START TRANSACTION;
 
-  -- Check if the template exists and belongs to the creator
+  -- Verify template exists before attempting update
   IF NOT EXISTS (SELECT 1
   FROM dt_invite_templates 
   WHERE tid = in_template_id ) THEN
@@ -31,8 +32,7 @@ END;
     SIGNAL SQLSTATE '45000';
   END IF;
 
-
-  -- Perform update
+  -- Update template fields with new values
   UPDATE dt_invite_templates
   SET 
     name    = in_new_name,
@@ -40,7 +40,7 @@ END;
     body    = in_new_body
   WHERE tid = in_template_id;
   
-  -- Checking if templete is renamed as existing template
+  -- Prevent duplicate template names for same creator
   IF EXISTS (SELECT count(tid) as cnt from dt_invite_templates
   WHERE name = in_new_name
   GROUP BY creator_tid
@@ -51,9 +51,7 @@ END;
   
   COMMIT;
 
-
-  
-  -- Success response
+  -- Return updated template information
   SELECT JSON_OBJECT(
       'template_id', in_template_id,
       'template_name', in_new_name
@@ -61,5 +59,3 @@ END;
 END $$
 
 DELIMITER ;
-
- 

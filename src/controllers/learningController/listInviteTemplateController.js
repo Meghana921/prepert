@@ -7,7 +7,7 @@ const listInviteTemplates = async (req, res) => {
     if (!creator_id){
       return res.status().json({
         success:false,
-        error:"Moissing required fields!"
+        error:"Missing required fields!"
       })
     }
     const [result] = await pool.query("CALL list_invite_template(?)", [
@@ -18,7 +18,7 @@ const listInviteTemplates = async (req, res) => {
     const dataResult = result[0][0]?.data;
 
     // If the 'templates' array is empty, return a "not found" response
-    if (dataResult.templates.length==0) {
+    if (dataResult.length==0) {
       return res.status(200).json({
         status: false,
         error: "No templates found!",

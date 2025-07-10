@@ -3,7 +3,7 @@ import addEligibilityTemplate from '../../controllers/learningController/addElig
 import listEligibilityTemplates from '../../controllers/learningController/listEligibilityController.js';
 import updateEligibilityTemplate from '../../controllers/learningController/updateEligibilityController.js';
 import viewEligibilityTemplate from '../../controllers/learningController/viewEligibilityController.js';
-import submitEligibilityResponse from '../../controllers/learningController/eligibilityResponseController.js';
+import submitEligibilityResponse from '../../controllers/learningController/submitEligibilityResponseController.js';
 
 const router = Router();
 

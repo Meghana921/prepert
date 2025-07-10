@@ -1,6 +1,7 @@
 DROP PROCEDURE IF EXISTS update_learning_program;
 DELIMITER $$
 
+-- Updates an existing learning program with new details and maintains data consistency
 CREATE PROCEDURE update_learning_program(
   IN in_program_id BIGINT,
   IN in_title VARCHAR(100),
@@ -26,40 +27,35 @@ CREATE PROCEDURE update_learning_program(
 BEGIN
   DECLARE custom_error VARCHAR(255);
   DECLARE program_exists INT DEFAULT 0;
+  DECLARE error_message VARCHAR(255);
 
- DECLARE error_message VARCHAR(255);
-    -- Error handler for rollback and exception
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-	BEGIN
-		GET DIAGNOSTICS CONDITION 1
-		error_message= MESSAGE_TEXT;
-		ROLLBACK;
-		SET custom_error = COALESCE(custom_error,error_message);
-		SIGNAL SQLSTATE '45000'
-		
-			SET MESSAGE_TEXT = custom_error;
-	END;
+  -- Error handler to rollback on failure and preserve data integrity
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  BEGIN
+    GET DIAGNOSTICS CONDITION 1 error_message= MESSAGE_TEXT;
+    ROLLBACK;
+    SET custom_error = COALESCE(custom_error,error_message);
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = custom_error;
+  END;
 
   START TRANSACTION;
 
-  -- Check if the program exists
-  IF NOT EXISTS (SELECT 1
-  FROM dt_learning_programs
-  WHERE tid = in_program_id AND creator_tid = in_creator_id)THEN
+  -- Verify program exists and belongs to requesting creator
+  IF NOT EXISTS (SELECT 1 FROM dt_learning_programs
+                WHERE tid = in_program_id AND creator_tid = in_creator_id) THEN
     SET custom_error = 'Program not found!';
     SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT=custom_error;
   END IF;
 
-  -- Update program
+  -- Update all program attributes
   UPDATE dt_learning_programs
   SET 
     title = in_title,
     description = in_description,
     difficulty_level = CASE WHEN in_difficulty_level = 'easy' THEN '0'
-        WHEN in_difficulty_level = 'medium' THEN '1'
-        WHEN in_difficulty_level = 'high' THEN '2'
-        ELSE '3'
-        END,
+                           WHEN in_difficulty_level = 'medium' THEN '1'
+                           WHEN in_difficulty_level = 'high' THEN '2'
+                           ELSE '3' END,
     image_path = in_image_path,
     price = in_price,
     access_period_months = in_access_period_months,
@@ -77,36 +73,34 @@ BEGIN
     is_public = in_public 
   WHERE tid = in_program_id;
 
-IF EXISTS (SELECT COUNT(tid) AS cnt FROM dt_learning_programs
-          WHERE title=in_title AND creator_tid = in_creator_id
-          GROUP BY creator_tid
-          HAVING cnt >1)THEN
-SET custom_error = 'Program already exists in this name!';
-   SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT=custom_error;
-END IF ;
+  -- Prevent duplicate program names for same creator
+  IF EXISTS (SELECT COUNT(tid) AS cnt FROM dt_learning_programs
+            WHERE title=in_title AND creator_tid = in_creator_id
+            GROUP BY creator_tid
+            HAVING cnt >1) THEN
+    SET custom_error = 'Program already exists in this name!';
+    SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT=custom_error;
+  END IF;
 
-  -- Update expires_on for all enrollments
+  -- Update expiration dates for all existing enrollments
   UPDATE dt_learning_enrollments 
   SET expires_on = DATE_ADD(enrollment_date, INTERVAL in_access_period_months MONTH)
   WHERE learning_program_tid = in_program_id;
   
--- If sponsorship is removed by the user, mark the sponsorship as cancelled
-IF (NOT in_sponsored) THEN
-  UPDATE dt_program_sponsorships
-  SET is_sponsorship_cancelled = TRUE;
-END IF;
+  -- Handle sponsorship cancellation if needed
+  IF (NOT in_sponsored) THEN
+    UPDATE dt_program_sponsorships
+    SET is_sponsorship_cancelled = TRUE
+    WHERE learning_program_tid = in_program_id;
+  END IF;
 
--- Commit the transaction after all updates
-COMMIT;
+  COMMIT;
 
-
-  -- Return success
+  -- Return success response with updated program info
   SELECT JSON_OBJECT(
       'program_id', in_program_id,
       'program_title', in_title
-    
   ) AS data;
-
 END $$
 
 DELIMITER ;

@@ -20,8 +20,8 @@ const listInviteTemplates = async (req, res) => {
     // If the 'templates' array is empty, return a "not found" response
     if (dataResult.length==0) {
       return res.status(200).json({
-        status: false,
-        error: "No templates found!",
+        status: true,
+        message: "No templates found!",
       });
     }
     else {

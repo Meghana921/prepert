@@ -27,8 +27,8 @@ const viewProgramController = async (req, res) => {
   } catch (error) {
     console.error('Error creating program:', error);
     res.status(500).json({
-      error: 'Internal server error',
-      details: error.message
+      status:false,
+      error: error.message
     });
   }
 };

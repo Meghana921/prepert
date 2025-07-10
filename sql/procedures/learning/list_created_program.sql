@@ -1,11 +1,10 @@
-DROP PROCEDURE IF EXISTS view_created_program;
+DROP PROCEDURE IF EXISTS list_created_program;
 DELIMITER //
 
-CREATE PROCEDURE view_created_program(IN creator_id BIGINT)
+CREATE PROCEDURE list_created_program(IN creator_id BIGINT)
 BEGIN
     -- This procedure returns all programs created by a given creator as a JSON array.
-    SELECT JSON_OBJECT(
-        "programs", COALESCE(
+    SELECT COALESCE(
             (
                 -- Aggregate all learning programs created by the given creator
                 SELECT JSON_ARRAYAGG(
@@ -19,7 +18,7 @@ BEGIN
                 ORDER BY lp.created_at             -- Order by creation date
             ),
             JSON_ARRAY() -- Return empty array if no programs found
-        )
+        
     ) AS data;
 END //
 DELIMITER ;

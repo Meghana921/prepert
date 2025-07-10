@@ -58,13 +58,13 @@ END;
   SELECT 
     in_template_id,
     q.question,
-    q.deciding_answer,
+    CASE WHEN q.deciding_answer = "yes" THEN "1" ELSE "0" END,
     q.sequence_number
   FROM JSON_TABLE(
     in_eligibility_questions,
     '$[*]' COLUMNS(
       question TEXT PATH '$.question',
-      deciding_answer ENUM('1','0') PATH '$.deciding_answer',
+      deciding_answer ENUM('yes','no') PATH '$.deciding_answer',
       sequence_number INT PATH '$.sequence_number',
       question_id FOR ORDINALITY
     )

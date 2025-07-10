@@ -13,7 +13,7 @@ CREATE TABLE dt_learning_programs (
     program_code VARCHAR(20) NOT NULL,
     title VARCHAR(100) NOT NULL,
     description TEXT,
-    creator_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_users(tid)",
+    creator_tid BIGINT UNSIGNED  COMMENT "REFERENCES dt_users(tid)",
     difficulty_level ENUM('0', '1', '2', '3') COMMENT '0-low, 1-medium, 2-high, 3-very_high',
     image_path VARCHAR(255),
     price DECIMAL(10, 2) DEFAULT 0.00,
@@ -31,6 +31,7 @@ CREATE TABLE dt_learning_programs (
     invite_template_tid BIGINT UNSIGNED COMMENT "REFERENCES dt_invite_templates(tid)",
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    is_public BOOLEAN DEFAULT FALSE,
     INDEX idx_creator_tid (creator_tid),
     INDEX idx_difficulty (difficulty_level),
     INDEX idx_sponsored (sponsored)
@@ -58,7 +59,6 @@ CREATE TABLE dt_learning_topics (
     description TEXT,		
     content TEXT COMMENT 'Actual content',
     sequence_number SMALLINT NOT NULL COMMENT 'Order of the topic',
-    progress_weight INT COMMENT 'Weight in progress calculations',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_module_tid (module_tid)
@@ -81,7 +81,6 @@ CREATE TABLE dt_learning_enrollments (
     completed_at DATETIME COMMENT 'When fully completed',
     certificate_issued BOOLEAN DEFAULT FALSE,
     certificate_url VARCHAR(255),
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_user_tid (user_tid),
     INDEX idx_learning_program_tid (learning_program_tid),
@@ -93,7 +92,7 @@ CREATE TABLE dt_learning_enrollments (
 DROP TABLE IF EXISTS dt_learning_progress;
 CREATE TABLE dt_learning_progress (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    enrollment_tid BIGINT UNSIGNED  COMMENT "REFERENCES dt_learning_enrollments(tid)",
+    enrollment_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_enrollments(tid)",
     topic_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_topics(tid)",
     status ENUM('0', '1', '2') NOT NULL DEFAULT '0' COMMENT "0:not_started,1:in_progress,2:completed",
     completion_date DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -170,7 +169,7 @@ CREATE TABLE dt_assessment_attempts (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     assessment_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_assessments(tid)",
     user_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_users(tid)",
-    enrollment_tid BIGINT UNSIGNED COMMENT "REFERENCES dt_learning_enrollments(tid)", -- 'If taken as part of enrollment'
+    enrollment_tid BIGINT UNSIGNED COMMENT "REFERENCES dt_learning_enrollments(tid)", 
     score SMALLINT UNSIGNED DEFAULT 0,
     passed BOOLEAN DEFAULT FALSE,
     started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -246,6 +245,7 @@ CREATE TABLE dt_eligibility_results (
     UNIQUE KEY uk_user_program (user_tid, learning_program_tid)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
+DROP TABLE IF EXISTS  dt_invite_templates;
 CREATE TABLE dt_invite_templates (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     creator_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_users(tid)",
@@ -260,21 +260,22 @@ CREATE TABLE dt_invite_templates (
 DROP TABLE IF EXISTS dt_invitees;
 CREATE TABLE dt_invitees (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    learning_program_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_programs(tid)",
+    program_type ENUM("1","2","3") COMMENT "1:learning,2:interview,3:screening",
+    program_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_programs(tid)",
     name VARCHAR(100) NOT NULL,
     email VARCHAR(255) NOT NULL,
-    email_status ENUM("0","1","2") DEFAULT "0" COMMENT "0:pending,1:sent,2:failed",
-    status ENUM('0', '1', '2') COMMENT "0:invited,1:enrolled,2:expired",
+    email_status ENUM("0","1","3") DEFAULT "3" COMMENT "1:sent,0:failed,3:pending",
+    status ENUM('0', '1', '2','3') COMMENT "0:invited,1:enrolled,2:expired,3:declined",
     invite_sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     response_at DATETIME,
-    enrollment_tid BIGINT UNSIGNED COMMENT "REFERENCES dt_learning_enrollments(tid)", -- 'Created enrollment if accepted'
+    enrollment_tid BIGINT UNSIGNED COMMENT "REFERENCES dt_learning_enrollments(tid)", 
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_learning_program_tid (learning_program_tid),
+    INDEX idx_program_tid (program_tid),
     INDEX idx_email (email),
     INDEX idx_status (status)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
-INSERT INTO  dt_invitees( learning_program_tid, name, email) VALUES(1,"Meghana","meghana.s921@gmail.com");
+
 -- ============================================================================
 -- Sponsorship Tables
 -- ============================================================================
@@ -285,6 +286,7 @@ CREATE TABLE dt_program_sponsorships (
     learning_program_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_programs(tid)",
     seats_allocated INT UNSIGNED NOT NULL DEFAULT 1,
     seats_used INT UNSIGNED DEFAULT 0,
+    is_sponsorship_cancelled BOOLEAN DEFAULT FALSE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_company_user_tid (company_user_tid),

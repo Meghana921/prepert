@@ -12,7 +12,7 @@ BEGIN
             SELECT JSON_ARRAYAGG(
                 JSON_OBJECT(
                     'question', sub.question,
-                    'deciding_answer', sub.deciding_answer,
+                    'deciding_answer', CASE WHEN sub.deciding_answer = 0 THEN "no" ELSE "yes" END,
                     'sequence_number', sub.sequence_number
                 )
             )

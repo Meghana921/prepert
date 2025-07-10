@@ -11,9 +11,10 @@ BEGIN
     SET
         email_status = in_email_status,
         invite_sent_at = CURRENT_TIMESTAMP,
-        updated_at = CURRENT_TIMESTAMP
+        updated_at = CURRENT_TIMESTAMP,
+        status = "0"
     WHERE
-        learning_program_tid = in_learning_program_tid
+        program_tid = in_learning_program_tid
         AND email = in_email;
 END$$
 

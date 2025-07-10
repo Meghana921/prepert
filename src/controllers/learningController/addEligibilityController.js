@@ -37,12 +37,8 @@ const addEligibilityTemplate = async (req, res) => {
         message: "Template saved successfully!"
       });
     }
-    else {
-      return res.status(500).json({
-        status: false,
-        error: "Unexpected response from stored procedure"
-      })
-    }
+    
+    
   } catch (error) {
     // Catch and return internal server errors
     console.error("Error in addEligibilityTemplate:", error);

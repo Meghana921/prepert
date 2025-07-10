@@ -35,20 +35,6 @@ BEGIN
           'id', concat(m.tid),
           'title', m.title,
 
-          -- Step 2c: Module completion status based on topic-level progress
-          'isCompleted', (
-            SELECT 
-              CASE 
-                WHEN COUNT(*) = 0 THEN FALSE
-                WHEN COUNT(*) = (
-                  SELECT COUNT(*) FROM dt_learning_topics t WHERE t.module_tid = m.tid
-                ) THEN TRUE
-                ELSE FALSE
-              END
-            FROM dt_learning_topics t
-            LEFT JOIN dt_learning_progress p ON p.topic_tid = t.tid AND p.enrollment_tid = enrollment_id
-            WHERE t.module_tid = m.tid AND p.status = '1'
-          ),
 
           -- Step 2d: List of items (topics) in the module with completion status
           'items', (
@@ -56,7 +42,7 @@ BEGIN
               JSON_OBJECT(
                 'id',concat(t.tid),
                 'title', t.title,
-                'isCompleted', IF(p.status = '1', TRUE, FALSE),
+                'isCompleted', IF(p.status = 1, TRUE, FALSE),
                 'content', t.content
               )
             )

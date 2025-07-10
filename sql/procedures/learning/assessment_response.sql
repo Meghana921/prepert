@@ -49,7 +49,7 @@ BEGIN
     ) VALUES (
         p_assessment_id,
         p_user_id,
-        v_enrollment_id
+        v_enrollment_id || NULL
     );
 
     SET v_attempt_id = LAST_INSERT_ID();

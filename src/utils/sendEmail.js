@@ -15,7 +15,7 @@ const sendMail = async ({
     const signature = `
       <p>
         <a href="${programLink}" target="_blank" style="text-decoration:none; color:#3366cc;">
-          👉 Click here to enroll in the program
+          👉 Click here to view invitation
         </a>
       </p>
       <p><strong>Program Title:</strong> ${programTitle || 'N/A'}</p>

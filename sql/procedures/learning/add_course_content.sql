@@ -73,16 +73,14 @@ BEGIN
     title,
     description,
     content,
-    sequence_number,
-    progress_weight
+    sequence_number
   )
   SELECT
     tm.module_tid,
     topic.title,
     topic.description,
     topic.content,
-    topic.sequence_number,
-    topic.progress_weight
+    topic.sequence_number
   FROM JSON_TABLE (
     in_modules_json,
     '$[*]' COLUMNS (
@@ -96,8 +94,7 @@ BEGIN
       title VARCHAR(100) PATH '$.title',
       description TEXT PATH '$.description',
       content TEXT PATH '$.content',
-      sequence_number INT PATH '$.sequence_number',
-      progress_weight INT PATH '$.progress_weight'
+      sequence_number INT PATH '$.sequence_number'
     )
   ) AS topic
   JOIN temp_module_map tm ON tm.module_id = mod_outer.module_id;

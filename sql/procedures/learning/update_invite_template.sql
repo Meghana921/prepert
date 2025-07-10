@@ -31,6 +31,7 @@ END;
     SIGNAL SQLSTATE '45000';
   END IF;
 
+
   -- Perform update
   UPDATE dt_invite_templates
   SET 
@@ -47,8 +48,11 @@ END;
   SET custom_error = "Please choose a different name — this template already exists";
   SIGNAL SQLSTATE "45000";
   END IF;
+  
   COMMIT;
 
+
+  
   -- Success response
   SELECT JSON_OBJECT(
       'template_id', in_template_id,

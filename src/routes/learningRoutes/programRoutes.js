@@ -1,6 +1,6 @@
 import Router from "express";
 import addProgram  from "../../controllers/learningController/addProgramController.js";
-import view_created_programs from "../../controllers/learningController/listProgramsController.js";
+import view_created_programs from "../../controllers/learningController/listCreatedProgramsController.js";
 import view_program from "../../controllers/learningController/viewProgramController.js";
 import enrollment from "../../controllers/learningController/enrollmentController.js";
 import updateLearningProgram from "../../controllers/learningController/updateProgramController.js";

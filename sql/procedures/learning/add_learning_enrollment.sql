@@ -3,7 +3,8 @@ DELIMITER //
 
 CREATE PROCEDURE learning_enrollment(
   IN in_user_id BIGINT,
-  IN in_program_id BIGINT
+  IN in_program_id BIGINT,
+  IN in_status VARCHAR(10)
 )
 BEGIN 
   DECLARE expire_date DATE;
@@ -51,7 +52,7 @@ END;
   SELECT available_slots, access_period_months INTO available_slots, access_months
   FROM dt_learning_programs 
   WHERE tid = in_program_id;
-
+IF (available_slots) THEN
   SELECT COUNT(tid) INTO current_enrollments
   FROM dt_learning_enrollments 
   WHERE learning_program_tid = in_program_id;
@@ -60,7 +61,7 @@ END;
     SET custom_error = 'No available slots in this program';
     SIGNAL SQLSTATE '45000';
   END IF;
-
+END IF;
   -- 4. Calculate expiry date based on access period
   SET expire_date = IFNULL(
     CASE 
@@ -100,18 +101,21 @@ END;
   END IF;
 
   -- 7. Update the invitee record with enrollment and response time if exists
-  SELECT email INTO email_id 
-  FROM dt_users 
+  
+  IF (in_status IS NOT NULL) THEN
+  
+  SELECT email into email_id  FROM dt_users
   WHERE tid = in_user_id;
-
-  IF email_id IS NOT NULL THEN
+ 
     UPDATE dt_invitees
     SET 
       enrollment_tid = enrollment_id,
       response_at = CURRENT_TIMESTAMP,
-      status ='1'
+      status = CASE WHEN in_status = "accepted" THEN "1"
+					WHEN in_status = "declined"  THEN "3"
+                    END 
     WHERE 
-      learning_program_tid = in_program_id 
+      program_tid = in_program_id 
       AND email = email_id;
   END IF;
 

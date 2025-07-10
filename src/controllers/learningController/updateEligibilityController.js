@@ -13,7 +13,7 @@ const updateEligibilityTemplate = async (req, res) => {
     if (!in_template_id || !in_template_name || !in_eligibility_questions) {
       return res.status(400).json({
         status: false,
-        error: "Missing required fields",
+        error: "Missing required fields!",
       });
     }
 
@@ -33,12 +33,6 @@ const updateEligibilityTemplate = async (req, res) => {
         data: result[0][0].data,
         status: true,
         message: "Template updated successfully",
-      });
-    } else {
-      // Procedure did not return the expected output
-      return res.status(500).json({
-        status: false,
-        error: "Unexpected response from stored procedure",
       });
     }
   } catch (error) {

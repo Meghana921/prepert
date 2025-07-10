@@ -1,12 +1,13 @@
 DROP PROCEDURE IF EXISTS add_eligibility_template;
-
+-- Creates new eligibility 
 DELIMITER //
 CREATE PROCEDURE add_eligibility_template (
     IN in_creator_id BIGINT,
     IN in_template_name VARCHAR(100),
     IN in_eligibility_questions JSON
 )
- BEGIN
+
+BEGIN
 -- Variable declarations
 DECLARE custom_error VARCHAR(255) DEFAULT NULL;
 DECLARE eligibility_template_tid BIGINT;
@@ -39,9 +40,7 @@ SET
     custom_error = 'An entry with the given template name already exists. Please use a different name or update the existing one.';
 
 SIGNAL SQLSTATE '45000'
-SET
-    MESSAGE_TEXT = custom_error;
-
+SET MESSAGE_TEXT = custom_error;
 END IF;
 
 -- Insert template
@@ -86,10 +85,8 @@ IF EXISTS (
         dt_eligibility_questions
     WHERE
         template_tid = eligibility_template_tid
-    GROUP BY
-        question
-    HAVING
-        cnt > 1
+    GROUP BY question
+    HAVING cnt > 1
 ) THEN
 SET
     custom_error = 'Duplicate questions found in the template';

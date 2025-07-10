@@ -6,6 +6,7 @@ CREATE PROCEDURE eligibility_response(
   IN in_program_id BIGINT,
   IN in_questions JSON
 )
+/* Processes user responses to determine program eligibility */
 BEGIN
   DECLARE template_id BIGINT UNSIGNED;
   DECLARE total_questions INT DEFAULT 0;
@@ -15,22 +16,19 @@ BEGIN
   DECLARE response_count INT DEFAULT 0;
   DECLARE expected_questions INT DEFAULT 0;
   DECLARE custom_error VARCHAR(255);
- DECLARE error_message VARCHAR(255);
-    -- Error handler for rollback and exception
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-BEGIN
-    GET DIAGNOSTICS CONDITION 1
-    error_message= MESSAGE_TEXT;
+  DECLARE error_message VARCHAR(255);
+
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  BEGIN
+    GET DIAGNOSTICS CONDITION 1 error_message= MESSAGE_TEXT;
     ROLLBACK;
     SET custom_error = COALESCE(custom_error,error_message);
-    SIGNAL SQLSTATE '45000'
-    
-        SET MESSAGE_TEXT = custom_error;
-END;
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = custom_error;
+  END;
 
   START TRANSACTION;
 
-  -- 1. Get eligibility template and regret message
+  -- Get program's eligibility template
   SELECT eligibility_template_tid, regret_message 
   INTO template_id, in_regret_message
   FROM dt_learning_programs 
@@ -41,21 +39,21 @@ END;
     SIGNAL SQLSTATE '45000';
   END IF;
 
-  -- 2. Prevent resubmission
+  -- Prevent duplicate responses
   IF EXISTS (
     SELECT 1 FROM dt_eligibility_responses 
     WHERE user_tid = in_user_id AND learning_program_tid = in_program_id
   ) THEN
     SET custom_error = 'You have already submitted an eligibility response for this program';
-     SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT=custom_errror;
+    SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT=custom_error;
   END IF;
 
-  -- 3. Count expected questions
+  -- Count required questions
   SELECT COUNT(tid) INTO expected_questions
   FROM dt_eligibility_questions
   WHERE template_tid = template_id;
 
-  -- 4. Insert responses
+  -- Store user responses
   INSERT INTO dt_eligibility_responses (
     user_tid, 
     learning_program_tid,
@@ -80,18 +78,18 @@ END;
     WHERE template_tid = template_id
   );
 
-  -- 5. Validate response count
+  -- Validate response count
   SELECT ROW_COUNT() INTO response_count;
 
   IF response_count = 0 THEN
     SET custom_error = 'No valid responses were inserted';
-    SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT=custom_errror;
+    SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT=custom_error;
   ELSEIF response_count != expected_questions THEN
     SET custom_error = CONCAT('Incomplete responses. Expected: ', expected_questions, ', Received: ', response_count);
-     SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT=custom_errror;
+    SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT=custom_error;
   END IF;
 
-  -- 6. Evaluate eligibility
+  -- Calculate correct answers
   SELECT COUNT(r.tid) INTO correct_answers
   FROM dt_eligibility_responses r
   JOIN dt_eligibility_questions q ON r.question_tid = q.tid
@@ -101,7 +99,7 @@ END;
 
   SET is_eligible = (correct_answers = expected_questions);
 
-  -- 7. Record result
+  -- Record final eligibility result
   INSERT INTO dt_eligibility_results (
     user_tid,
     learning_program_tid,
@@ -114,7 +112,7 @@ END;
   ON DUPLICATE KEY UPDATE 
     passed = is_eligible;
 
-  -- 8. Return final JSON response
+  -- Return eligibility decision
   SELECT JSON_OBJECT(
       'user_id', in_user_id,
       'program_id', in_program_id,
@@ -123,7 +121,6 @@ END;
                   WHEN is_eligible THEN 'You are eligible for this program'
                   ELSE in_regret_message
                 END
-    
   ) AS data;
 
   COMMIT;

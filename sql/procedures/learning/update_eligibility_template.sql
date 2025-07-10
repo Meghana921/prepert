@@ -1,6 +1,7 @@
 DROP PROCEDURE IF EXISTS update_eligibility_template;
 DELIMITER $$
 
+/* Updates an existing eligibility template including its questions */
 CREATE PROCEDURE update_eligibility_template(
   IN in_template_id BIGINT,
   IN in_template_name VARCHAR(100),
@@ -93,5 +94,3 @@ END;
 END $$
 
 DELIMITER ;
-
-

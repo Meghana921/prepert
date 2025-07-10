@@ -16,7 +16,7 @@ const testConnection = async () => {
   let connection;
   try {
     connection = await pool.getConnection();
-    console.log("Successfully connected to database n2");
+    console.log("Successfully connected to database ");
   } catch (err) {
     console.error("Error connecting to the database:", err);
   } finally {

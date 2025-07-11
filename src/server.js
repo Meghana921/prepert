@@ -28,7 +28,6 @@ app.use('/learning', trackProgressRoutes);
 app.use('/learning', companySubscribersRoutes);
 app.use('/learning',listAllPrograms);
 app.use('/learning', courseContentRoutes);
-//app.use('/api/learning/course-content-with-progress', courseContentWithProgressRoutes);
 app.use('/learning', inviteTemplateRoutes);
 app.use('/api/learning/get-certificate', getCertificateRoutes);
 

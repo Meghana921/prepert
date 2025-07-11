@@ -1,3 +1,8 @@
+DROP DATABASE IF EXISTS prepertdevdb;
+CREATE DATABASE prepertdevdb
+CHARACTER SET utf8mb4 COLLATE  utf8mb4_unicode_ci;
+USE prepertdevdb;
+
 -- ============================================================================
 -- Core Learning Program Tables (programs, modules, topics)
 -- ============================================================================
@@ -28,6 +33,7 @@ CREATE TABLE dt_learning_programs (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     is_public BOOLEAN DEFAULT FALSE, -- Public visibility flag
+    is_deleted BOOLEAN DEFAULT false,
     INDEX idx_creator_tid (creator_tid),
     INDEX idx_difficulty (difficulty_level),
     INDEX idx_sponsored (sponsored)
@@ -90,7 +96,7 @@ CREATE TABLE dt_learning_progress (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, -- Progress ID
     enrollment_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_enrollments(tid)",
     topic_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_topics(tid)",
-    status ENUM('0','1','2') DEFAULT '0' COMMENT '0-not_started,1-in_progress,2-completed',
+    status ENUM('0','1') DEFAULT '0' COMMENT '0-not_started,1-completed',
     completion_date DATETIME, -- When topic was completed
     INDEX idx_enrollment_tid (enrollment_tid),
     INDEX idx_topic_tid (topic_tid),
@@ -104,11 +110,8 @@ CREATE TABLE dt_learning_questions (
     enrollment_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_enrollments(tid)",
     topic_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_topics(tid)",
     question TEXT NOT NULL, -- User's question
-    answer TEXT, -- Instructor's answer
+    answer TEXT, -- gpt's answer
     asked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    answered_at DATETIME, -- When answered
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_enrollment_tid (enrollment_tid),
     INDEX idx_topic_tid (topic_tid)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -169,9 +172,7 @@ CREATE TABLE dt_assessment_attempts (
     enrollment_tid BIGINT UNSIGNED COMMENT "REFERENCES dt_learning_enrollments(tid)", 
     score SMALLINT UNSIGNED DEFAULT 0, -- Total score
     passed BOOLEAN DEFAULT FALSE, -- Pass/fail status
-    started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     completed_at DATETIME, -- Completion time
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_assessment_tid (assessment_tid),
     INDEX idx_user_tid (user_tid),
     INDEX idx_enrollment_tid (enrollment_tid)

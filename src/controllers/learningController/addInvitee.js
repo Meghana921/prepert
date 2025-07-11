@@ -11,7 +11,7 @@ const addInvitee = async (req, res) => {
       email
     } = req.body;
 
-    // Call stored procedure to insert invitee and return associated program and template data
+    // Call stored procedure to insert invitee 
     const [result] = await pool.query(`CALL add_invitee(${Array(4).fill("?").join(",")})`, [
       program_type,
       program_tid,
@@ -30,7 +30,7 @@ const addInvitee = async (req, res) => {
         to: email,
         subject: resData.subject,
         text: resData.body,
-        programCode: resData.program_code,
+        programCode: resData.program_code || null,
         programTitle: resData.program_title,
         recipientName: name
       });
@@ -38,11 +38,11 @@ const addInvitee = async (req, res) => {
       emailStatus = '1'; // Email sent successfully
 
       // Update the invitee's email status in the database
-      await pool.query(`CALL update_invitee_email_status(?, ?, ?)`, [
-        resData.program_id,
-        email,
+      await pool.query(`CALL update_invitee_email_status(?, ?)`, [
+        resData.invite_tid,
         emailStatus
       ]);
+      console.log(resData.invite_tid)
     } catch (mailErr) {
       // If email fails to send, respond with error and terminate
       return res.status(500).json({
@@ -54,7 +54,7 @@ const addInvitee = async (req, res) => {
     // Final response to the client after email is sent and status updated
     res.status(201).json({
       status: true,
-      data: { inviteeTID: resData.invitee_tid },
+      data: { inviteeTID: resData.invite_tid },
       message: `${emailStatus === '1' ? 'sent email' : 'failed to send email'}!`
     });
 

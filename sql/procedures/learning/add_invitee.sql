@@ -11,7 +11,7 @@ CREATE PROCEDURE add_invitee(
     IN in_email VARCHAR(254)
 )
 BEGIN
-    DECLARE invitee_id BIGINT UNSIGNED;
+    DECLARE invite_id BIGINT UNSIGNED;
     DECLARE custom_error VARCHAR(255) DEFAULT NULL;
     DECLARE error_message VARCHAR(255);
     -- Error handler for rollback and exception
@@ -46,12 +46,13 @@ IF EXISTS (SELECT 1 FROM dt_invitees
         in_name,
         in_email
     );
-    SET invitee_id = LAST_INSERT_ID();
+    SET invite_id = LAST_INSERT_ID();
 END IF;
     -- Commit the transaction
     COMMIT;
+    -- for learning
     IF in_program_type = "1" THEN 
-    SELECT json_object("invitee_tid",invitee_id,
+    SELECT json_object("invite_tid",invite_id,
 					    "program_id",lp.tid,
                         "program_title",lp.title,
                         "program_code",lp.program_code,
@@ -61,6 +62,28 @@ END IF;
 		  FROM dt_learning_programs lp
           JOIN dt_invite_templates it ON lp.invite_template_tid = it.tid
           WHERE lp.tid = in_program_tid;
+          -- for interview
+    ELSEIF in_program_type = "2" THEN 
+    SELECT json_object("invite_tid",invite_id,
+					    "program_tid",ip.tid,
+                        "program_title",ip.title,
+                        "subject",it.subject,
+                        "body",it.body
+                        ) as data
+		  FROM dt_interview_programs ip
+          JOIN dt_invite_templates it ON ip.invite_template_tid = it.tid
+          WHERE ip.tid = in_program_tid;
+          -- for screening
+	ELSEIF in_program_type = "3" THEN 
+    SELECT json_object("invite_tid",invite_id,
+					    "program_tid",sp.tid,
+                        "program_title",sp.title,
+                        "subject",it.subject,
+                        "body",it.body
+                        ) as data
+		  FROM dt_screening_programs sp
+          JOIN dt_invite_templates it ON sp.invite_template_tid = it.tid
+          WHERE sp.tid = in_program_tid;
     END IF;
 END //
 

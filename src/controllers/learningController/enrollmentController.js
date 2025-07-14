@@ -15,7 +15,7 @@ const addLearningEnrollment = async (req, res) => {
    
     let result
     // Call the stored procedure to enroll the user in the program
-    if(in_type==="learning"){
+    if(in_type === "1"){
        [result] = await pool.query(
       "CALL learning_enrollment(?, ?, ?)",
       [in_user_id, in_program_id,in_status]

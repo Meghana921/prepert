@@ -2,7 +2,7 @@ DROP PROCEDURE IF EXISTS view_eligibility_template;
 DELIMITER //
 
 /* Retrieves an eligibility template with all its questions in JSON format */
-CREATE PROCEDURE view_eligibility_template(IN in_template_tid BIGINT)
+CREATE PROCEDURE view_eligibility_template(IN in_template_tid BIGINT )
 BEGIN
     -- Return structured JSON with template and its questions
     SELECT JSON_OBJECT(
@@ -30,3 +30,4 @@ BEGIN
 END //
 
 DELIMITER ;
+call view_eligibility_template(1);

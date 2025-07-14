@@ -11,9 +11,9 @@ const addProgram = async (req, res) => {
       image_path: in_image_path = null,
       price: in_price = null,
       access_period_months: in_access_period_months = null,
-      available_slots: in_available_slots = null,
+      // available_slots: in_available_slots = null,
       campus_hiring: in_campus_hiring = false,
-      sponsored: in_sponsored = false,
+      // sponsored: in_sponsored = false,
       minimum_score: in_minimum_score = null,
       experience_from: in_experience_from = null,
       experience_to: in_experience_to = null,
@@ -40,7 +40,7 @@ const addProgram = async (req, res) => {
 
     // Call stored procedure to create the learning program
     const [result] = await pool.query(
-      `CALL add_learning_program(${Array(19).fill("?").join(",")})`,
+      `CALL add_learning_program(${Array(17).fill("?").join(",")})`,
       [
         in_title,
         in_description,
@@ -49,9 +49,9 @@ const addProgram = async (req, res) => {
         in_image_path,
         in_price,
         in_access_period_months,
-        in_available_slots,
         in_campus_hiring,
-        in_sponsored,
+        // in_available_slots,
+        // in_sponsored,
         in_minimum_score,
         in_experience_from,
         in_experience_to,

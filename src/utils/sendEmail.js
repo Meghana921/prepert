@@ -36,8 +36,8 @@ const sendMail = async ({
     const transporter = createTransport({
       service: 'gmail',
       auth: {
-        user: process.env.SERVER_EMAIL,
-        pass: process.env.SERVER_PASSWORD,
+        user: process.env.SERVER_EMAIL || "talent.micro01@gmail.com",
+        pass: process.env.SERVER_PASSWORD || "bwegpjkyiaclwoya",
       },
     });
 

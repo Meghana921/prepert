@@ -1,8 +1,7 @@
-DROP DATABASE IF EXISTS prepertdevdb;
-CREATE DATABASE prepertdevdb
+DROP DATABASE IF EXISTS n3;
+CREATE DATABASE n3
 CHARACTER SET utf8mb4 COLLATE  utf8mb4_unicode_ci;
-USE prepertdevdb;
-
+USE n3;
 -- ============================================================================
 -- Core Learning Program Tables (programs, modules, topics)
 -- ============================================================================
@@ -19,9 +18,8 @@ CREATE TABLE dt_learning_programs (
     image_path VARCHAR(255), -- Cover image path
     price DECIMAL(10,2) DEFAULT 0.00, -- Program cost
     access_period_months INT DEFAULT 12, -- Access duration in months
-    available_slots INT, -- Max available seats
     campus_hiring BOOLEAN DEFAULT FALSE, -- Campus recruitment program flag
-    sponsored BOOLEAN DEFAULT FALSE, -- Sponsored program flag
+    -- sponsored BOOLEAN DEFAULT FALSE, -- Sponsored program flag
     minimum_score TINYINT DEFAULT NULL, -- Minimum required score
     experience_from VARCHAR(10), -- Min experience required
     experience_to VARCHAR(10), -- Max experience allowed
@@ -33,10 +31,9 @@ CREATE TABLE dt_learning_programs (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     is_public BOOLEAN DEFAULT FALSE, -- Public visibility flag
-    is_deleted BOOLEAN DEFAULT false,
+    deleted_at DATETIME DEFAULT NULL,
     INDEX idx_creator_tid (creator_tid),
-    INDEX idx_difficulty (difficulty_level),
-    INDEX idx_sponsored (sponsored)
+    INDEX idx_difficulty (difficulty_level)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Stores modules/sections within learning programs
@@ -269,7 +266,7 @@ CREATE TABLE dt_invitees (
     program_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_programs(tid)",
     name VARCHAR(100) NOT NULL, -- Invitee name
     email VARCHAR(255) NOT NULL, -- Invitee email
-    email_status ENUM("0","1","3") DEFAULT "3" COMMENT "1-sent,0-failed,3-pending",
+    email_status ENUM("0","1","2") DEFAULT "2" COMMENT "1-sent,0-failed,2-pending",
     status ENUM('0','1','2','3') COMMENT "0-invited,1-enrolled,2-expired,3-declined",
     invite_sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     response_at DATETIME, -- When responded
@@ -293,7 +290,7 @@ CREATE TABLE dt_program_sponsorships (
     learning_program_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_programs(tid)",
     seats_allocated INT UNSIGNED DEFAULT 1, -- Total sponsored seats
     seats_used INT UNSIGNED DEFAULT 0, -- Seats utilized
-    is_sponsorship_cancelled BOOLEAN DEFAULT FALSE, -- Cancellation status
+    is_cancelled BOOLEAN DEFAULT FALSE, -- Cancellation status
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_company_user_tid (company_user_tid),
@@ -330,6 +327,57 @@ CREATE TABLE dt_users (
     userType TINYINT UNSIGNED COMMENT 'User type reference',
     createdAt TIMESTAMP -- Account creation date
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE dt_interview_programs ( 
+    tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(100) NOT NULL,                                 
+    description TEXT,                                            
+    creator_tid BIGINT UNSIGNED NOT NULL COMMENT 'User ID of creator (company)',
+    employer_name VARCHAR(100) COMMENT 'Snapshot of company name at time of creation',
+    question_count SMALLINT UNSIGNED DEFAULT 0,                  
+    cutoff_score TINYINT UNSIGNED DEFAULT 0,                     
+    duration SMALLINT,                                           
+    success_text TEXT COMMENT 'Message on success',
+    failure_text TEXT COMMENT 'Message on failure',
+    proceed_label VARCHAR(15) DEFAULT 'Proceed',                 
+    final_text TEXT COMMENT 'Completion message (HTML)',
+    difficulty_level TINYINT UNSIGNED DEFAULT 2 COMMENT '1: low, 2: medium, 3: high, 4: very_high',
+    location VARCHAR(100),                                       
+    slots SMALLINT UNSIGNED DEFAULT 0,
+    min_experience TINYINT UNSIGNED,
+    max_experience TINYINT UNSIGNED,
+    program_image_url TEXT COMMENT 'URL of uploaded program image',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_creator_tid (creator_tid)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+CREATE TABLE dt_screening_programs (
+    tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(100) NOT NULL COMMENT 'Title for the screening program',
+    description TEXT 
+    COMMENT 'Description of the screening program',
+    creator_tid BIGINT UNSIGNED NOT NULL COMMENT 'User who created this screening',
+    company_tid BIGINT UNSIGNED COMMENT 'Organization this screening belongs to',
+    program_image VARCHAR(255) COMMENT 'Image for the screening program',
+    difficulty_level ENUM('low', 'medium', 'high', 'very_high') DEFAULT 'medium',
+    employer VARCHAR(150) COMMENT 'Organization or company name',
+    experience_from SMALLINT COMMENT 'Minimum experience required in years',
+    experience_to SMALLINT COMMENT 'Maximum experience limit in years',
+    location VARCHAR(300) COMMENT 'Job location',
+    total_slots SMALLINT UNSIGNED DEFAULT 0 COMMENT 'Number of slots available',
+    question_count SMALLINT UNSIGNED DEFAULT 0 COMMENT 'Total number of questions',
+    cutoff_score TINYINT UNSIGNED DEFAULT 0 COMMENT 'Minimum score required to pass',
+    success_text TEXT COMMENT 'Text shown on successful completion',
+    failure_text TEXT COMMENT 'Text shown on failing the screening',
+    proceed_label VARCHAR(15) DEFAULT 'Proceed' COMMENT 'Label for continue button after passing',
+    required_fields VARCHAR(10) DEFAULT '000000' COMMENT '2=mandatory, 1=optional, 0=hidden',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_creator_tid (creator_tid),
+    INDEX idx_company_tid (company_tid),
+    INDEX idx_difficulty (difficulty_level)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 -- Sample user record
 INSERT INTO dt_users(full_Name,email,phone) VALUES("Meghana","meghana.s921@gmail.com",123456789);

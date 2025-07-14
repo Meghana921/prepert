@@ -41,7 +41,10 @@ BEGIN
   END IF;
 
   -- Check program capacity if slots are limited
-  SELECT available_slots, access_period_months INTO available_slots, access_months
+  SELECT seats_allocated INTO available_slots
+  FROM dt_program_sponsorships WHERE learning_program_tid = in_program_id;
+  
+  SELECT access_period_months INTO  access_months
   FROM dt_learning_programs WHERE tid = in_program_id;
   
   IF (available_slots) THEN
@@ -49,7 +52,7 @@ BEGIN
     FROM dt_learning_enrollments WHERE learning_program_tid = in_program_id;
 
     IF current_enrollments >= available_slots THEN
-      SET custom_error = 'No available slots in this program';
+      SET custom_error = 'No sponsored slots available in this program';
       SIGNAL SQLSTATE '45000';
     END IF;
   END IF;
@@ -67,23 +70,24 @@ BEGIN
   SET enrollment_id = LAST_INSERT_ID();
 
   -- Handle sponsored program enrollment
-  IF EXISTS (SELECT 1 FROM dt_learning_programs WHERE tid = in_program_id AND sponsored = TRUE) THEN
+  -- IF EXISTS (SELECT 1 FROM dt_learning_programs WHERE learning_program_tid = in_program_id AND sponsored = TRUE) THEN
     UPDATE dt_program_sponsorships
     SET seats_used = seats_used + 1
     WHERE learning_program_tid = in_program_id;
     
-    SELECT tid INTO program_sponsorship_id 
-    FROM dt_program_sponsorships
-    WHERE learning_program_tid = in_program_id;
-    
-    INSERT INTO dt_user_sponsorships(program_sponsorship_tid, user_tid, enrollment_tid) 
-    VALUES(program_sponsorship_id, in_user_id, enrollment_id);
-  END IF;
+    if exists (
+		SELECT tid INTO program_sponsorship_id 
+		FROM dt_program_sponsorships
+		WHERE learning_program_tid = in_program_id
+    ) then 
+		INSERT INTO dt_user_sponsorships(program_sponsorship_tid, user_tid, enrollment_tid) 
+		VALUES(program_sponsorship_id, in_user_id, enrollment_id);
+	END IF;
 
   -- Update invitee status if applicable
   IF (in_status IS NOT NULL) THEN
     SELECT email INTO email_id FROM dt_users WHERE tid = in_user_id;
- 
+    
     UPDATE dt_invitees
     SET enrollment_tid = enrollment_id,
         response_at = CURRENT_TIMESTAMP,
@@ -104,4 +108,4 @@ END //
 
 DELIMITER ;
 
-call learning_enrollment(4,1,"accepted")
+-- call learning_enrollment(4,1,"accepted")

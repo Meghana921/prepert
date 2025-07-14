@@ -4,7 +4,7 @@ DELIMITER //
 CREATE PROCEDURE list_all_invitations(IN in_user_id BIGINT UNSIGNED)
 BEGIN
     -- First get the user's email
-    DECLARE user_email VARCHAR(255);
+    DECLARE user_email VARCHAR	(255);
     
     SELECT email INTO user_email FROM dt_users WHERE tid = in_user_id;
     

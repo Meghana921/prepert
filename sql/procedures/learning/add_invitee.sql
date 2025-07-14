@@ -14,40 +14,43 @@ BEGIN
     DECLARE invite_id BIGINT UNSIGNED;
     DECLARE custom_error VARCHAR(255) DEFAULT NULL;
     DECLARE error_message VARCHAR(255);
+    
     -- Error handler for rollback and exception
-DECLARE EXIT HANDLER FOR SQLEXCEPTION
-BEGIN 
-ROLLBACK;
-GET DIAGNOSTICS CONDITION 1 
-error_message = MESSAGE_TEXT;
-SET custom_error = COALESCE(custom_error, error_message);
-SIGNAL SQLSTATE '45000'
-SET
-  MESSAGE_TEXT = custom_error;
-END;
-    -- Start the transaction
-START TRANSACTION;
--- CHECKS if invite already sent
-IF EXISTS (SELECT 1 FROM dt_invitees
-    WHERE program_type=in_program_type AND program_tid=in_program_tid AND email=in_email AND status = "1")
-    THEN 
-    SET custom_error = "User already enrolled!";
-    SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT = custom_error;
-    ELSE
-    -- Insert the invitee into the invitees table
-    INSERT INTO dt_invitees (
-        program_type,
-        program_tid,
-        name,
-        email
-    ) VALUES (
-        in_program_type,
-        in_program_tid,
-        in_name,
-        in_email
-    );
-    SET invite_id = LAST_INSERT_ID();
-END IF;
+	DECLARE EXIT HANDLER FOR SQLEXCEPTION
+	BEGIN 
+	ROLLBACK;
+	GET DIAGNOSTICS CONDITION 1 
+	error_message = MESSAGE_TEXT;
+	SET custom_error = COALESCE(custom_error, error_message);
+	SIGNAL SQLSTATE '45000'
+	SET
+	  MESSAGE_TEXT = custom_error;
+	END;
+    
+	-- Start the transaction
+	START TRANSACTION;
+    
+	-- CHECKS if invite already sent
+	IF EXISTS (SELECT 1 FROM dt_invitees
+		WHERE program_type=in_program_type AND program_tid=in_program_tid AND email=in_email AND status = "1")
+		THEN 
+		SET custom_error = "User already enrolled!";
+		SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT = custom_error;
+		ELSE
+		-- Insert the invitee into the invitees table
+		INSERT INTO dt_invitees (
+			program_type,
+			program_tid,
+			name,
+			email
+		) VALUES (
+			in_program_type,
+			in_program_tid,
+			in_name,
+			in_email
+		);
+		SET invite_id = LAST_INSERT_ID();
+	END IF;
     -- Commit the transaction
     COMMIT;
     -- for learning

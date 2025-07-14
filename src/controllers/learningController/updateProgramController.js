@@ -12,9 +12,9 @@ const  updateLearningProgram = async (req, res) => {
       image_path: in_image_path = null,
       price: in_price = null,
       access_period_months: in_access_period_months = null,
-      available_slots: in_available_slots = null,
+      // available_slots: in_available_slots = null,
       campus_hiring: in_campus_hiring = false,
-      sponsored: in_sponsored = false,
+      // sponsored: in_sponsored = false,
       minimum_score: in_minimum_score = null,
       experience_from: in_experience_from = null,
       experience_to: in_experience_to = null,
@@ -41,7 +41,7 @@ const  updateLearningProgram = async (req, res) => {
 
     // Execute stored procedure with 18 input parameters
     const [result] = await pool.query(
-      `CALL update_learning_program(${Array(20).fill("?").join(",")})`,
+      `CALL update_learning_program(${Array(18).fill("?").join(",")})`,
       [
         in_program_id,
         in_title,
@@ -51,9 +51,7 @@ const  updateLearningProgram = async (req, res) => {
         in_image_path,
         in_price,
         in_access_period_months,
-        in_available_slots,
         in_campus_hiring,
-        in_sponsored,
         in_minimum_score,
         in_experience_from,
         in_experience_to,
@@ -66,6 +64,8 @@ const  updateLearningProgram = async (req, res) => {
       ]
     );
 
+        // in_available_slots,
+        // in_sponsored,
     // Extract program data from stored procedure result
     const programData = result?.[0]?.[0]?.data;
 

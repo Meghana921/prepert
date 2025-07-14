@@ -20,10 +20,20 @@ const submitEligibilityResponse = async (req, res) => {
       [in_user_id, in_program_id, JSON.stringify(in_questions)]
     );
 
+    const result_data = result[0][0].data;
+    let [result_2] = null;
+    const in_status = "accepted";
+
+    if(result_data.passed){
+      [result_2] = await pool.query(
+        "CALL learning_enrollment(?, ?, ?)",
+        [in_user_id, in_program_id , in_status]
+      );
+    }
 
     // Return the stored procedure's output as the response
     return res.status(201).json({
-      data: result[0][0].data,
+      data: [result[0][0].data , result_2[0][0].data],
       status: true
     });
 

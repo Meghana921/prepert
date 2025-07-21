@@ -5,16 +5,18 @@ CREATE PROCEDURE getCourseSubscribers(
     IN p_learning_program_tid BIGINT UNSIGNED
 )
 BEGIN
+    -- Returns subscribers for a specific learning program, including their highest assessment score
     SELECT JSON_OBJECT(
         'data', COALESCE(
             JSON_ARRAYAGG(
                 JSON_OBJECT(
                     'enrollment_id',         e.tid,
                     'subscriber_name',       u.full_Name,
-                    'subscriber_email',      u.email,
-                    'subscriber_phone',      u.phone,
                     'program_title',         lp.title,
-                    'enrollment_status',     e.status,
+                    'completion_status', CASE WHEN e.status = "3" THEN "expired"
+                                       WHEN e.status = "2" THEN "completed" 
+                                       WHEN e.status = "1" THEN "in_progress"
+                                       WHEN e.status= "0" THEN "not_started" END,
                     'progress_percentage',   e.progress_percentage,
                     'enrollment_date',       e.enrollment_date,
                     'expires_on',            e.expires_on,
@@ -26,19 +28,14 @@ BEGIN
         )
     ) AS data
     FROM dt_learning_enrollments e
-    INNER JOIN dt_users u 
-        ON e.user_tid = u.tid
-    INNER JOIN dt_learning_programs lp 
-        ON e.learning_program_tid = lp.tid
+    INNER JOIN dt_users u ON e.user_tid = u.tid
+    INNER JOIN dt_learning_programs lp ON e.learning_program_tid = lp.tid
     LEFT JOIN (
-        SELECT a.user_tid, SUM(a.total_score) AS total_score
-        FROM dt_topic_assessments a
-        INNER JOIN dt_learning_topics t ON a.topic_tid = t.tid
-        INNER JOIN dt_learning_modules m ON t.module_tid = m.tid
-        WHERE m.learning_program_tid = p_learning_program_tid
-        GROUP BY a.user_tid
+        -- Get max score of any assessment attempt per user
+        SELECT user_tid, MAX(score) AS total_score
+        FROM dt_assessment_attempts
+        GROUP BY user_tid
     ) s ON s.user_tid = u.tid
     WHERE lp.tid = p_learning_program_tid;
 END $$
 DELIMITER ;
-

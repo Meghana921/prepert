@@ -2,103 +2,100 @@ DROP PROCEDURE IF EXISTS learning_enrollment;
 DELIMITER //
 
 CREATE PROCEDURE learning_enrollment(
-  IN in_user_id BIGINT,
-  IN in_program_id BIGINT,
-  IN in_status VARCHAR(10))
+  IN in_user_id BIGINT,       -- ID of the user to enroll
+  IN in_program_id BIGINT     -- ID of the learning program
+)
 BEGIN 
+  -- Declare variables
   DECLARE expire_date DATE;
   DECLARE access_months INT;
   DECLARE enrollment_id BIGINT;
-  DECLARE available_slots INT;
-  DECLARE current_enrollments INT;
   DECLARE email_id VARCHAR(100);
   DECLARE custom_error VARCHAR(255);
-  DECLARE program_sponsorship_id BIGINT;
   DECLARE error_message VARCHAR(255);
-  
-  -- Handle errors and rollback on failure
+  DECLARE program_sponsorship_id BIGINT;
+  DECLARE is_sponsred BOOLEAN DEFAULT FALSE;
+
+  -- Error handler for rollback and exception capture
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
-    GET DIAGNOSTICS CONDITION 1 error_message= MESSAGE_TEXT;
+    GET DIAGNOSTICS CONDITION 1 error_message = MESSAGE_TEXT;
     ROLLBACK;
-    SET custom_error = COALESCE(custom_error,error_message);
+    SET custom_error = COALESCE(custom_error, error_message);
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = custom_error;
   END;
 
   START TRANSACTION;
 
-  -- Validate program exists
-  IF NOT EXISTS (SELECT 1 FROM dt_learning_programs WHERE tid = in_program_id) THEN
-    SET custom_error = 'Program not found';
-    SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT = custom_error;
+  -- Check if the program exists and is valid
+  IF NOT EXISTS (
+    SELECT 1 
+    FROM dt_learning_programs 
+    WHERE tid = in_program_id AND deleted_at IS NULL AND creator_tid IS NOT NULL
+  ) THEN
+    SET custom_error = 'Program not found!';
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = custom_error;
   END IF;
 
-  -- Prevent duplicate enrollments
-  IF EXISTS (SELECT 1 FROM dt_learning_enrollments 
-            WHERE user_tid = in_user_id AND learning_program_tid = in_program_id) THEN
+  -- Check for existing enrollment
+  IF EXISTS (
+    SELECT 1 
+    FROM dt_learning_enrollments 
+    WHERE user_tid = in_user_id AND learning_program_tid = in_program_id
+  ) THEN
     SET custom_error = 'User is already enrolled in this program';
-    SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT = custom_error;
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = custom_error;
   END IF;
+ 
+  -- Get access period from the program
+  SELECT access_period_months INTO access_months
+  FROM dt_learning_programs 
+  WHERE tid = in_program_id;
 
-  -- Check program capacity if slots are limited
-  SELECT seats_allocated INTO available_slots
-  FROM dt_program_sponsorships WHERE learning_program_tid = in_program_id;
-  
-  SELECT access_period_months INTO  access_months
-  FROM dt_learning_programs WHERE tid = in_program_id;
-  
-  IF (available_slots) THEN
-    SELECT COUNT(tid) INTO current_enrollments
-    FROM dt_learning_enrollments WHERE learning_program_tid = in_program_id;
-
-    IF current_enrollments >= available_slots THEN
-      SET custom_error = 'No sponsored slots available in this program';
-      SIGNAL SQLSTATE '45000';
-    END IF;
-  END IF;
-
-  -- Calculate access expiration date
+  -- Calculate expiration date based on access period
   SET expire_date = IFNULL(
-    CASE WHEN access_months > 0 THEN DATE_ADD(CURRENT_DATE(), INTERVAL access_months MONTH)
-    ELSE NULL END,
+    CASE 
+      WHEN access_months > 0 THEN DATE_ADD(CURRENT_DATE(), INTERVAL access_months MONTH)
+      ELSE NULL 
+    END,
     NULL
   );
 
-  -- Create enrollment record
-  INSERT INTO dt_learning_enrollments(user_tid, learning_program_tid, expires_on)
-  VALUES (in_user_id, in_program_id, expire_date);
-  SET enrollment_id = LAST_INSERT_ID();
+  -- Check and apply program sponsorship if available
+  SELECT tid INTO program_sponsorship_id 
+  FROM dt_program_sponsorships
+  WHERE learning_program_tid = in_program_id AND seats_used < seats_allocated AND is_cancelled = false
+  LIMIT 1;
 
-  -- Handle sponsored program enrollment
-  -- IF EXISTS (SELECT 1 FROM dt_learning_programs WHERE learning_program_tid = in_program_id AND sponsored = TRUE) THEN
+  IF program_sponsorship_id IS NOT NULL THEN 
+    SET is_sponsred = TRUE;
+
+    -- Update used seats count
     UPDATE dt_program_sponsorships
     SET seats_used = seats_used + 1
-    WHERE learning_program_tid = in_program_id;
-    
-    if exists (
-		SELECT tid INTO program_sponsorship_id 
-		FROM dt_program_sponsorships
-		WHERE learning_program_tid = in_program_id
-    ) then 
-		INSERT INTO dt_user_sponsorships(program_sponsorship_tid, user_tid, enrollment_tid) 
-		VALUES(program_sponsorship_id, in_user_id, enrollment_id);
-	END IF;
-
-  -- Update invitee status if applicable
-  IF (in_status IS NOT NULL) THEN
-    SELECT email INTO email_id FROM dt_users WHERE tid = in_user_id;
-    
-    UPDATE dt_invitees
-    SET enrollment_tid = enrollment_id,
-        response_at = CURRENT_TIMESTAMP,
-        status = CASE WHEN in_status = "accepted" THEN "1"
-                     WHEN in_status = "declined" THEN "3" END 
-    WHERE program_tid = in_program_id AND email = email_id;
+    WHERE tid = program_sponsorship_id;
   END IF;
 
+  -- Insert the enrollment record
+  INSERT INTO dt_learning_enrollments(user_tid, learning_program_tid, expires_on, sponsered)
+  VALUES (in_user_id, in_program_id, expire_date, is_sponsred);
+
+  SET enrollment_id = LAST_INSERT_ID();
+
+  -- Get user's email ID
+  SELECT email INTO email_id 
+  FROM dt_users 
+  WHERE tid = in_user_id;
+
+  -- Update invitee record if email matches
+  UPDATE dt_invitees
+  SET enrollment_tid = enrollment_id,
+      status = '3'
+  WHERE program_tid = in_program_id AND email = email_id AND email_status = '1';
+  
   COMMIT;
 
-  -- Return enrollment confirmation
+  -- Return final response as JSON
   SELECT JSON_OBJECT(
     'enrollment_id', enrollment_id,
     'program_id', in_program_id,
@@ -107,5 +104,3 @@ BEGIN
 END //
 
 DELIMITER ;
-
--- call learning_enrollment(4,1,"accepted")

@@ -21,11 +21,12 @@ const listEligibilityTemplates = async (req, res) => {
     // Extract the data object returned by the stored procedure
     const dataResult = result[0][0]?.data;
 
-    // If the 'templates' array is empty, return a "not found" response
+    // If the 'templates' array is empty
     if (dataResult.length == 0) {
       return res.status(200).json({
-        status: false,
-        error: "You have not added any template",
+        status: true,
+        data:[],
+        message: "You have not added any template",
       });
     }
     else {

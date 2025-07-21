@@ -15,7 +15,6 @@ const trackProgress = async (req, res) => {
     const[result]=await pool.query(`CALL track_learning_progess(?, ?)`, [user_id, topic_id]);
 
     return res.status(200).json({
-      data : result[0][0],
       status: true,
       message: `Progress for user ${user_id} on topic ${topic_id} tracked successfully.`,
     });

@@ -30,8 +30,6 @@ const addLearningQuestion = async (req, res) => {
       message: "Question added successfully",
     });
   } catch (error) {
-    // Handle and return any errors
-    console.error(error);
     res.status(500).json({ error: error.message, status: false });
   }
 };

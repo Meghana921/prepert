@@ -23,7 +23,7 @@ const sendMail = async ({
       <br/>
       <p style="font-size: 14px; color: #555;">
         Best regards,<br/>
-        <strong>Talent Micro</strong>
+        <strong>team Prepert</strong>
       </p>
     `;
 
@@ -36,13 +36,13 @@ const sendMail = async ({
     const transporter = createTransport({
       service: 'gmail',
       auth: {
-        user: process.env.SERVER_EMAIL || "talent.micro01@gmail.com",
-        pass: process.env.SERVER_PASSWORD || "bwegpjkyiaclwoya",
+        user: process.env.SERVER_EMAIL ,
+        pass: process.env.SERVER_PASSWORD ,
       },
     });
 
     const mailOptions = {
-      from: `"Talent Micro" <${process.env.SERVER_EMAIL}>`,
+      from: `"Prepert" <${process.env.SERVER_EMAIL}>`,
       to,
       subject,
       html: mailBody,

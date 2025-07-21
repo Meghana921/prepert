@@ -21,7 +21,7 @@ const updateInviteTemplate = async (req, res) => {
 
     // Execute stored procedure to update template
     const [result] = await pool.query(
-      "CALL update_invite_template(?, ?,?)",
+      "CALL update_invite_template(?, ?,?,?)",
       [in_template_id, in_new_name, in_new_subject, in_new_body]
     );
 

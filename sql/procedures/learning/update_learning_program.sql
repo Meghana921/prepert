@@ -11,9 +11,7 @@ CREATE PROCEDURE update_learning_program(
   IN in_image_path VARCHAR(255),
   IN in_price DECIMAL(10, 2),
   IN in_access_period_months INT,
-  -- IN in_available_slots INT,
   IN in_campus_hiring BOOLEAN,
-  -- IN in_sponsored BOOLEAN,
   IN in_minimum_score TINYINT,
   IN in_experience_from VARCHAR(10),
   IN in_experience_to VARCHAR(10),
@@ -59,9 +57,7 @@ BEGIN
     image_path = in_image_path,
     price = in_price,
     access_period_months = in_access_period_months,
-   -- available_slots = in_available_slots,
     campus_hiring = in_campus_hiring,
-   -- sponsored = in_sponsored,
     minimum_score = in_minimum_score,
     experience_from = in_experience_from,
     experience_to = in_experience_to,
@@ -87,13 +83,6 @@ BEGIN
   SET expires_on = DATE_ADD(enrollment_date, INTERVAL in_access_period_months MONTH)
   WHERE learning_program_tid = in_program_id;
   
-  -- - Handle sponsorship cancellation if needed
---   IF (NOT in_sponsored) THEN
---     UPDATE dt_program_sponsorships
---     SET is_sponsorship_cancelled = TRUE
---     WHERE learning_program_tid = in_program_id;
---   END IF;
-
   COMMIT;
 
   -- Return success response with updated program info
@@ -104,24 +93,3 @@ BEGIN
 END $$
 
 DELIMITER ;
-
-call update_learning_program(
-  1,
-   "Full Stack Developer Bootcamp - Updated",
-  "Updated version of the program with revised curriculum and timeline.",
-   2,
-   "medium",
-  "/images/fullstack_updated.png",
-  15999.99,
-   6,
-  true,
-   65,
-  "0",
-   "2",
-  "Mumbai,Pune,Bangalore",
-   "TechNova Pvt. Ltd.",
-  "Thank you for applying. You were not shortlisted this time.",
-   2,
-  3,
-   true
-);

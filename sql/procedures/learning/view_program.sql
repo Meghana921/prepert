@@ -13,8 +13,8 @@ BEGIN
     -- Error handler to ensure clean failure and rollback
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
-        GET DIAGNOSTICS CONDITION 1 error_message= MESSAGE_TEXT;
         ROLLBACK;
+        GET DIAGNOSTICS CONDITION 1 error_message= MESSAGE_TEXT;
         SET custom_error = COALESCE(custom_error,error_message);
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = custom_error;
     END;
@@ -37,9 +37,7 @@ BEGIN
             'image_path', lp.image_path,
             'price', lp.price,
             'access_period_months', lp.access_period_months,
-            -- 'available_slots', lp.available_slots,
             'campus_hiring', lp.campus_hiring,
-            -- 'sponsored', lp.sponsored,
             'minimum_score', lp.minimum_score,
             'experience_from', lp.experience_from,
             'experience_to', lp.experience_to,

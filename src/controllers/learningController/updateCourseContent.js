@@ -31,7 +31,7 @@ const updateCourseContent = async (req, res) => {
     console.error("Error updating modules and topics:", error);
     return res.status(500).json({
       status: false,
-      error: error.message || "Internal Server Error",
+      error: error.message,
     });
   }
 };

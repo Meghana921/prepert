@@ -20,8 +20,10 @@ SELECT * FROM dt_learning_modules;
 SELECT * FROM dt_user_sponsorships;
 SELECT * FROM dt_program_sponsorships ;
 SELECT * FROM dt_learning_progress;
+SELECT * FROM dt_learning_questions;
 
 
+DELETE FROM dt_program_sponsorships;
 DELETE FROM dt_learning_assessments;
 DELETE FROM dt_eligibility_templates;
 DELETE FROM  dt_invite_templates ;
@@ -32,6 +34,9 @@ DELETE FROM  dt_eligibility_questions;
 DELETE FROM dt_invitees;
 DELETE FROM dt_learning_enrollments;
 
-update dt_learning_programs
-SET creator_tid = null 
-WHERE creator_tid =1 
+UPDATE dt_program_sponsorships
+SET seats_used =0
+WHERE tid=2;
+update dt_invitees
+SET status= "1"
+WHERE tid =2;

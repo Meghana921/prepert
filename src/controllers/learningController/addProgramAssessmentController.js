@@ -49,17 +49,10 @@ const addProgramAssessment = async (req, res) => {
         status: true,
         message: "Assessment created successfully!"
       });
-    } else {
-      // Fallback error if result is missing
-      return res.status(500).json({
-        status: false,
-        error: "Unexpected response from stored procedure"
-      });
     }
 
   } catch (error) {
-    // Catch any internal/server error 
-    console.error("Failed to add learning assessment:", error);
+    // Catch any internal/server error
     return res.status(500).json({
       status: false,
       error: error.message,

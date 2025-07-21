@@ -21,6 +21,7 @@ const listInviteTemplates = async (req, res) => {
     if (dataResult.length==0) {
       return res.status(200).json({
         status: true,
+        data:[],
         message: "No templates found!",
       });
     }

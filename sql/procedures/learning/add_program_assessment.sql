@@ -11,40 +11,43 @@ CREATE PROCEDURE add_program_assessment (
     IN in_questions JSON
 )
 BEGIN
+    -- Variable declarations
     DECLARE assessment_id BIGINT UNSIGNED;
     DECLARE questions_added INT UNSIGNED DEFAULT 0;
     DECLARE custom_error VARCHAR(255);
-	DECLARE error_message VARCHAR(255);
-    -- Error handler for rollback and exception
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-	BEGIN
-		ROLLBACK;
-		GET DIAGNOSTICS CONDITION 1
-		error_message= MESSAGE_TEXT;
-		SET custom_error = COALESCE(custom_error,error_message);
-		SIGNAL SQLSTATE '45000'
-		SET MESSAGE_TEXT = custom_error;
-	END;
+    DECLARE error_message VARCHAR(255);
 
+    -- Error handler to rollback transaction and capture SQL exception message
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        GET DIAGNOSTICS CONDITION 1
+        error_message = MESSAGE_TEXT;
+        SET custom_error = COALESCE(custom_error, error_message);
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = custom_error;
+    END;
+
+    -- Start transaction to ensure atomicity
     START TRANSACTION;
 
-    -- Check if the program exists
+    -- Check if the learning program exists
     IF NOT EXISTS (
         SELECT 1 FROM dt_learning_programs WHERE tid = in_program_id
     ) THEN
         SET custom_error = CONCAT('Learning program with ID ', in_program_id, ' does not exist');
-       SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT=custom_error;
+        SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT = custom_error;
     END IF;
 
-    -- Check if assessment already exists
+    -- Check if an assessment for the program already exists
     IF EXISTS (
         SELECT 1 FROM dt_learning_assessments WHERE learning_program_tid = in_program_id
     ) THEN
         SET custom_error = 'Assessment for this program has already been created. You can access and update it if necessary';
-        SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT=custom_error;
+        SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT = custom_error;
     END IF;
 
-    -- Insert into dt_learning_assessments
+    -- Insert assessment details into dt_learning_assessments
     INSERT INTO dt_learning_assessments (
         learning_program_tid,
         title,
@@ -59,9 +62,10 @@ BEGIN
         in_passing_score
     );
 
+    -- Get the last inserted assessment ID
     SET assessment_id = LAST_INSERT_ID();
 
-    -- Insert questions if provided
+    -- Insert associated assessment questions from input JSON
     IF in_questions IS NOT NULL AND JSON_LENGTH(in_questions) > 0 THEN
         INSERT INTO dt_assessment_questions (
             assessment_tid,
@@ -85,23 +89,24 @@ BEGIN
                 options JSON PATH '$.options',
                 correct_option INT PATH '$.correct_option',
                 score INT PATH '$.score',
-              sequence_number INT PATH '$.sequence_number'
+                sequence_number INT PATH '$.sequence_number'
             )
         ) AS questions;
 
+        -- Store the number of inserted questions
         SET questions_added = ROW_COUNT();
-	ELSE
-    SET custom_error = 'No questions found to insert';
-        SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT=custom_error;
+    ELSE
+        SET custom_error = 'No questions found to insert';
+        SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT = custom_error;
     END IF;
 
+    -- Commit transaction after successful insertion
     COMMIT;
 
-    -- Return structured response
-   SELECT JSON_OBJECT(
-            'assessment_id', assessment_id,
-            'total_questions', questions_added
-        
+    -- Return the inserted assessment ID and total number of questions added
+    SELECT JSON_OBJECT(
+        'assessment_id', assessment_id,
+        'total_questions', questions_added
     ) AS data;
 END //
 

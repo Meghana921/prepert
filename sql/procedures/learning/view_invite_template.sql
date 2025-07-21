@@ -9,7 +9,7 @@ BEGIN
   -- Return template details as a formatted JSON object
   SELECT JSON_OBJECT(
     'template_tid', tid,      -- Template ID
-    'template_name', name,    -- Template display name
+    'template_name', name,    -- Template title
     'subject', subject,       -- Email subject line
     'body', body              -- Email body content
   ) AS data

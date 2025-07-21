@@ -10,9 +10,7 @@ CREATE PROCEDURE add_learning_program (
     IN in_image_path VARCHAR(255),
     IN in_price DECIMAL(10, 2),
     IN in_access_period_months INT,
-    -- IN in_available_slots INT,
     IN in_campus_hiring BOOLEAN,
-    -- IN in_sponsored BOOLEAN,
     IN in_minimum_score TINYINT,
     IN in_experience_from VARCHAR(10),
     IN in_experience_to VARCHAR(10),
@@ -77,9 +75,6 @@ BEGIN
     );
 
     SET learning_program_id = LAST_INSERT_ID();
-
-    
-    
     COMMIT;
 
     -- Return success response with program details

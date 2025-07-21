@@ -1,40 +1,25 @@
 DROP PROCEDURE IF EXISTS update_invitee_email_status;
+
 DELIMITER //
 
--- Updates email delivery status for an invitee
-CREATE PROCEDURE update_invitee_email_status (
-    IN in_invite_id BIGINT UNSIGNED,
-    IN in_email_status ENUM('1', '2')   -- 1:sent, 2:failed
+CREATE PROCEDURE update_invitee_email_status(
+    IN updates_json JSON  -- JSON array of invitee IDs and their email statuses
 )
 BEGIN
-    DECLARE custom_error VARCHAR(255) DEFAULT NULL;
-    DECLARE error_message VARCHAR(255);
-    
-    -- Handle SQL exceptions
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN 
-        GET DIAGNOSTICS CONDITION 1 error_message = MESSAGE_TEXT;
-        SET custom_error = COALESCE(custom_error, error_message);
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = custom_error;
-    END;
-
-    START TRANSACTION;
-
-    -- Update invitee's email status
-    UPDATE dt_invitees
+    -- Update email status, status flag, and invite_sent_at timestamp
+    -- for each invitee entry present in the input JSON
+    UPDATE dt_invitees d
+    JOIN JSON_TABLE(
+        updates_json,
+        '$[*]' COLUMNS(
+            id BIGINT UNSIGNED PATH '$.id',         -- Invitee ID
+            status CHAR(1) PATH '$.status'          -- New email status ('1' for sent, '2' for failed)
+        )
+    ) js ON d.tid = js.id
     SET
-        email_status = in_email_status,  -- Set delivery status
-        status = "0"                     -- Reset invite status
-    WHERE
-        tid = in_invite_id;           
-
-    -- Verify update was successful
-    IF ROW_COUNT() = 0 THEN
-        SET custom_error = 'No matching invitee found';
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = custom_error;
-    END IF;
-
-    COMMIT;
-END//
+        d.email_status = js.status,                                 -- Set new email status
+        d.status = "0",                                              -- Reset general status to 0
+        d.invite_sent_at = IF(js.status = '1', CURRENT_TIMESTAMP(), d.invite_sent_at);  
+END //
 
 DELIMITER ;

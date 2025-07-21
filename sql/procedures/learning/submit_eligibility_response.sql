@@ -17,7 +17,7 @@ BEGIN
   DECLARE expected_questions INT DEFAULT 0;
   DECLARE custom_error VARCHAR(255);
   DECLARE error_message VARCHAR(255);
-
+  DECLARE  sponsred_slots_available BOOLEAN DEFAULT false;
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
     GET DIAGNOSTICS CONDITION 1 error_message= MESSAGE_TEXT;
@@ -36,7 +36,7 @@ BEGIN
 
   IF template_id IS NULL THEN
     SET custom_error = "Program not found!";
-    SIGNAL SQLSTATE '45000';
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT=custom_error;
   END IF;
 
   -- Prevent duplicate responses
@@ -112,6 +112,14 @@ BEGIN
   ON DUPLICATE KEY UPDATE 
     passed = is_eligible;
 
+-- CHECK IF sponsered_slots available
+  IF EXISTS (SELECT 1
+  FROM dt_program_sponsorships
+  WHERE learning_program_tid = in_program_id AND seats_used < seats_allocated AND is_cancelled = false
+  LIMIT 1) THEN
+  SET sponsred_slots_available = TRUE;
+  END IF;
+  
   -- Return eligibility decision
   SELECT JSON_OBJECT(
       'user_id', in_user_id,
@@ -120,7 +128,8 @@ BEGIN
       'message', CASE 
                   WHEN is_eligible THEN 'You are eligible for this program'
                   ELSE in_regret_message
-                END
+                END,
+	'sponsred_slots_available', sponsred_slots_available
   ) AS data;
 
   COMMIT;

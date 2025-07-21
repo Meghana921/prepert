@@ -14,7 +14,7 @@ BEGIN
                     )
                 )
                 FROM dt_learning_programs lp
-                WHERE lp.creator_tid = creator_id  -- Filter by creator ID
+                WHERE lp.creator_tid = creator_id AND deleted_at IS NULL  -- Filter by creator ID
                 ORDER BY lp.created_at             -- Order by creation date
             ),
             JSON_ARRAY() -- Return empty array if no programs found

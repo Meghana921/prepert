@@ -1,7 +1,7 @@
-DROP DATABASE IF EXISTS n3;
-CREATE DATABASE n3
+DROP DATABASE IF EXISTS prepertdevdb;
+CREATE DATABASE prepertdevdb
 CHARACTER SET utf8mb4 COLLATE  utf8mb4_unicode_ci;
-USE n3;
+USE prepertdevdb;
 -- ============================================================================
 -- Core Learning Program Tables (programs, modules, topics)
 -- ============================================================================
@@ -17,9 +17,8 @@ CREATE TABLE dt_learning_programs (
     difficulty_level ENUM('0','1','2','3') COMMENT '0-low,1-medium,2-high,3-very_high',
     image_path VARCHAR(255), -- Cover image path
     price DECIMAL(10,2) DEFAULT 0.00, -- Program cost
-    access_period_months INT DEFAULT 12, -- Access duration in months
+    access_period_months INT DEFAULT 0, -- Access duration in months
     campus_hiring BOOLEAN DEFAULT FALSE, -- Campus recruitment program flag
-    -- sponsored BOOLEAN DEFAULT FALSE, -- Sponsored program flag
     minimum_score TINYINT DEFAULT NULL, -- Minimum required score
     experience_from VARCHAR(10), -- Min experience required
     experience_to VARCHAR(10), -- Max experience allowed
@@ -36,7 +35,7 @@ CREATE TABLE dt_learning_programs (
     INDEX idx_difficulty (difficulty_level)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Stores modules/sections within learning programs
+-- Stores modules within learning programs
 DROP TABLE IF EXISTS dt_learning_modules;
 CREATE TABLE dt_learning_modules (
     tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, -- Module ID
@@ -78,6 +77,7 @@ CREATE TABLE dt_learning_enrollments (
     enrollment_date DATETIME DEFAULT CURRENT_TIMESTAMP,
     expires_on DATE, -- Access expiration date
     completed_at DATETIME, -- Completion timestamp
+    sponsered BOOLEAN DEFAULT false,
     certificate_issued BOOLEAN DEFAULT FALSE, -- Certificate generated flag
     certificate_url VARCHAR(255), -- Certificate URL
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -94,7 +94,7 @@ CREATE TABLE dt_learning_progress (
     enrollment_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_enrollments(tid)",
     topic_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_learning_topics(tid)",
     status ENUM('0','1') DEFAULT '0' COMMENT '0-not_started,1-completed',
-    completion_date DATETIME, -- When topic was completed
+    completion_date DATETIME DEFAULT CURRENT_TIMESTAMP, -- When topic was completed
     INDEX idx_enrollment_tid (enrollment_tid),
     INDEX idx_topic_tid (topic_tid),
     UNIQUE KEY uk_enrollment_topic (enrollment_tid, topic_tid)
@@ -267,8 +267,9 @@ CREATE TABLE dt_invitees (
     name VARCHAR(100) NOT NULL, -- Invitee name
     email VARCHAR(255) NOT NULL, -- Invitee email
     email_status ENUM("0","1","2") DEFAULT "2" COMMENT "1-sent,0-failed,2-pending",
-    status ENUM('0','1','2','3') COMMENT "0-invited,1-enrolled,2-expired,3-declined",
-    invite_sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    request_id CHAR(36) DEFAULT NULL COMMENT 'UUID to track bulk insert request',
+    status ENUM('0','1','2','3') COMMENT "0-invited,1-accepted,2-declined,3-enrolled",
+    invite_sent_at DATETIME,
     response_at DATETIME, -- When responded
     enrollment_tid BIGINT UNSIGNED COMMENT "REFERENCES dt_learning_enrollments(tid)", 
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -297,18 +298,6 @@ CREATE TABLE dt_program_sponsorships (
     INDEX idx_learning_program_tid (learning_program_tid)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Tracks user sponsorships
-DROP TABLE IF EXISTS dt_user_sponsorships;
-CREATE TABLE dt_user_sponsorships (
-    tid BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, -- Sponsorship ID
-    program_sponsorship_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_program_sponsorships(tid)",
-    user_tid BIGINT UNSIGNED NOT NULL COMMENT "REFERENCES dt_users(tid)",
-    enrollment_tid BIGINT UNSIGNED COMMENT "REFERENCES dt_learning_enrollments(tid)",
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_program_sponsorship_tid (program_sponsorship_tid),
-    INDEX idx_user_tid (user_tid)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
 -- User Accounts
@@ -380,4 +369,4 @@ CREATE TABLE dt_screening_programs (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 -- Sample user record
-INSERT INTO dt_users(full_Name,email,phone) VALUES("Meghana","meghana.s921@gmail.com",123456789);
+INSERT INTO dt_users(full_Name,email,phone) VALUES("Meghana","meghana.s921@gmail.com",123456789),("Devashish","devashish.ind@gmail.com",87878768676);

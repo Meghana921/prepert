@@ -17,7 +17,7 @@ const listAllInvitations = async (req, res) => {
 
     // Call the stored procedure to get all invitations
     const [result] = await pool.query(
-      "CALL list_all_invitations(?)",
+      "CALL view_inviataions(?)",
       [in_user_id]
     );
 
@@ -27,8 +27,7 @@ const listAllInvitations = async (req, res) => {
     // Send response to client
     return res.status(200).json({
       data: resData,
-      status: true,
-      message: "Invitations retrieved successfully"
+      status: true
     });
 
   } catch (error) {

@@ -16,9 +16,7 @@ BEGIN
 		error_message= MESSAGE_TEXT;
 		ROLLBACK;
 		SET custom_error = COALESCE(custom_error,error_message);
-		SIGNAL SQLSTATE '45000'
-		
-			SET MESSAGE_TEXT = custom_error;
+		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = custom_error;
 	END;
 
     -- Check if an assessment exists for the given program
@@ -29,7 +27,7 @@ BEGIN
         SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT = custom_error;
     END IF;
 
-    -- Build a JSON response combining assessment info and associated questions
+    -- JSON response combining assessment info and associated questions
     SELECT 
         JSON_OBJECT(
             'assessment_id', a.tid,

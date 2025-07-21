@@ -26,7 +26,6 @@ BEGIN
                                 'topic_title', t.title, 
                                 'topic_description', t.description, 
                                 'sequence_number', t.sequence_number, 
-                                'progress_weight', t.progress_weight,
                                 'content', t.content 
                             )
                         )

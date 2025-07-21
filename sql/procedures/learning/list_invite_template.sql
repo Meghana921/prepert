@@ -4,7 +4,7 @@ DELIMITER //
 
 CREATE PROCEDURE list_invite_template(IN creator_id BIGINT)
 BEGIN
-    -- Returns JSON array of templates (empty array if none found)
+    -- Returns JSON array of templates 
     SELECT 
             IFNULL(
                 JSON_ARRAYAGG( 

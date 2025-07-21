@@ -1,6 +1,7 @@
 DROP PROCEDURE IF EXISTS submit_program_assessment;
 DELIMITER //
 
+-- Submits a user's responses to a program-level assessment, evaluates score, and records result
 CREATE PROCEDURE submit_program_assessment(
     IN p_user_id BIGINT UNSIGNED,
     IN p_assessment_id BIGINT UNSIGNED,
@@ -15,6 +16,7 @@ BEGIN
     DECLARE v_passed BOOLEAN DEFAULT FALSE;
     DECLARE custom_error VARCHAR(255);
 
+    -- Exit handler to rollback and return error message
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
@@ -23,14 +25,14 @@ BEGIN
 
     START TRANSACTION;
 
-    -- 1. Get question_count and passing score
+    -- Get total number of questions and passing score for the assessment
     SELECT question_count, passing_score
     INTO v_question_count, v_passing_score
     FROM dt_learning_assessments
     WHERE tid = p_assessment_id
     LIMIT 1;
 
-    -- 2. Find enrollment  
+    -- Retrieve the enrollment ID for the user under the same learning program as the assessment
     SELECT tid INTO v_enrollment_id
     FROM dt_learning_enrollments
     WHERE user_tid = p_user_id
@@ -41,7 +43,7 @@ BEGIN
       )
     LIMIT 1;
 
-    -- 3. Insert attempt
+    -- Insert a new assessment attempt
     INSERT INTO dt_assessment_attempts (
         assessment_tid,
         user_tid,
@@ -49,12 +51,12 @@ BEGIN
     ) VALUES (
         p_assessment_id,
         p_user_id,
-        v_enrollment_id || NULL
+        v_enrollment_id
     );
 
     SET v_attempt_id = LAST_INSERT_ID();
 
-    -- 4. Insert responses
+    -- Store the responses provided by the user with evaluation
     INSERT INTO dt_assessment_responses (
         attempt_tid,
         question_tid,
@@ -87,15 +89,15 @@ BEGIN
         )
     ) AS responses;
 
-    -- 5. Calculate total score
+    -- Calculate total score for the attempt
     SELECT SUM(score) INTO v_total_score
     FROM dt_assessment_responses
     WHERE attempt_tid = v_attempt_id;
 
-    -- 6. Determine pass/fail
+    -- Determine whether the user passed based on the total score
     SET v_passed = (v_total_score >= v_passing_score);
 
-    -- 7. Update attempt
+    -- Update the assessment attempt record with score, status, and completion time
     UPDATE dt_assessment_attempts
     SET 
         score = v_total_score,
@@ -103,8 +105,7 @@ BEGIN
         completed_at = CURRENT_TIMESTAMP
     WHERE tid = v_attempt_id;
 
-
-    -- 9. Return JSON response
+    -- Return final response as JSON
     SELECT JSON_OBJECT(
         'user_tid', p_user_id,
         'assessment_id', p_assessment_id,

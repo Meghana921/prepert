@@ -13,7 +13,7 @@ BEGIN
   DECLARE duplicate_count INT DEFAULT 0;
 
   DECLARE error_message VARCHAR(255);
-    -- Error handler for rollback and exception
+  -- Error handler: rollback and raise error with custom or default message
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
 BEGIN
     GET DIAGNOSTICS CONDITION 1
@@ -21,8 +21,7 @@ BEGIN
     ROLLBACK;
     SET custom_error = COALESCE(custom_error,error_message);
     SIGNAL SQLSTATE '45000'
-    
-        SET MESSAGE_TEXT = custom_error;
+    SET MESSAGE_TEXT = custom_error;
 END;
 
   START TRANSACTION;

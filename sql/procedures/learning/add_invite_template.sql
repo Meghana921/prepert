@@ -33,7 +33,7 @@ BEGIN
     WHERE creator_tid = in_creator_tid
       AND name = in_name
   ) THEN
-    SET custom_error = 'Template name already exists for this creator. Please use a different name.';
+    SET custom_error = 'An entry with the given template name already exists. Please use a different name or update the existing one.';
     SIGNAL SQLSTATE "45000"
     SET MESSAGE_TEXT = custom_error;
   END IF;
@@ -54,7 +54,7 @@ BEGIN
 
   COMMIT;
 
-  -- Return success response with new template details
+  -- Return new template details
   SELECT JSON_OBJECT(
     'template_id', LAST_INSERT_ID(),
     'template_name', in_name

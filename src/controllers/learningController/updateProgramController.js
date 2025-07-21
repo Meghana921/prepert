@@ -12,9 +12,7 @@ const  updateLearningProgram = async (req, res) => {
       image_path: in_image_path = null,
       price: in_price = null,
       access_period_months: in_access_period_months = null,
-      // available_slots: in_available_slots = null,
       campus_hiring: in_campus_hiring = false,
-      // sponsored: in_sponsored = false,
       minimum_score: in_minimum_score = null,
       experience_from: in_experience_from = null,
       experience_to: in_experience_to = null,
@@ -34,7 +32,7 @@ const  updateLearningProgram = async (req, res) => {
       !in_difficulty_level
     ) {
       res.status(400).json({
-        status: true, // should ideally be false in error, but kept as-is
+        status: false, 
         error: "Missing required fields!",
       });
     }
@@ -64,8 +62,6 @@ const  updateLearningProgram = async (req, res) => {
       ]
     );
 
-        // in_available_slots,
-        // in_sponsored,
     // Extract program data from stored procedure result
     const programData = result?.[0]?.[0]?.data;
 

@@ -17,12 +17,19 @@ const addLearningEnrollment = async (req, res) => {
     // Call the stored procedure to enroll the user in the program
     if(in_type === "1"){
        [result] = await pool.query(
-      "CALL learning_enrollment(?, ?, ?)",
-      [in_user_id, in_program_id,in_status]
+      "CALL learning_enrollment(?, ?)",
+      [in_user_id, in_program_id]
     );
   }
+  
+  else {
+      [result] = await pool.query(
+        "CALL add_enrollment(?, ?, ?)",
+        [in_user_id, in_program_id,in_status]
+      );
+   }
 
-  const resData = result[0][0];
+  const resData = result[0][0].data;
     // Send response to client
     if (resData) {
       return res.status(200).json({

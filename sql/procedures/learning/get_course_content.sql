@@ -2,47 +2,46 @@ DROP PROCEDURE IF EXISTS view_learning_program_with_progress;
 DELIMITER //
 
 CREATE PROCEDURE view_learning_program_with_progress(
-  IN in_program_id BIGINT UNSIGNED,
-  IN in_user_id BIGINT UNSIGNED
+  IN in_program_id BIGINT UNSIGNED,   -- Program ID to fetch
+  IN in_user_id BIGINT UNSIGNED       -- User ID to track progress
 )
 BEGIN
   DECLARE enrollment_id BIGINT;
 
-  -- Step 1: Fetch the enrollment ID for the given user and program
+  -- Get the enrollment ID for the user and program
   SELECT tid INTO enrollment_id
   FROM dt_learning_enrollments
   WHERE user_tid = in_user_id AND learning_program_tid = in_program_id
   LIMIT 1;
 
-  -- Step 2: Build and return structured JSON with program, modules, items and progress
+  -- Return structured JSON containing program details, modules, topics, and progress
   SELECT JSON_OBJECT(
     'id', p.tid,
     'type', 'learning',
     'title', p.title,
     'description', p.description,
 
-    -- Step 2a: User's progress percentage from dt_learning_enrollments
+    -- Overall user progress in the program
     'progressPercentage', (
       SELECT progress_percentage 
       FROM dt_learning_enrollments 
       WHERE tid = enrollment_id
     ),
 
-    -- Step 2b: Array of modules
+    -- Modules included in the program
     'modules', (
       SELECT JSON_ARRAYAGG(
         JSON_OBJECT(
-          'id', concat(m.tid),
+          'id', CONCAT(m.tid),
           'title', m.title,
 
-
-          -- Step 2d: List of items (topics) in the module with completion status
+          -- Topics under the module with completion info
           'items', (
             SELECT JSON_ARRAYAGG(
               JSON_OBJECT(
-                'id',concat(t.tid),
+                'id', CONCAT(t.tid),
                 'title', t.title,
-                'isCompleted', IF(p.status = 1, TRUE, FALSE),
+                'isCompleted', IF(p.status = 2, TRUE, FALSE),
                 'content', t.content
               )
             )

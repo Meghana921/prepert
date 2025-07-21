@@ -1,5 +1,5 @@
 import Router from "express";
-import addEligibilityTemplate from '../../controllers/learningController/addEligibilityController.js';
+import addEligibilityTemplate from '../../controllers/learningController/addEligibilityTemplate.js';
 import listEligibilityTemplates from '../../controllers/learningController/listEligibilityController.js';
 import updateEligibilityTemplate from '../../controllers/learningController/updateEligibilityController.js';
 import viewEligibilityTemplate from '../../controllers/learningController/viewEligibilityController.js';

@@ -1,6 +1,7 @@
 DROP PROCEDURE IF EXISTS update_program_assessment;
 DELIMITER //
 
+-- Updates assessment details and replaces its questions using the provided JSON input
 CREATE PROCEDURE update_program_assessment (
     IN in_assessment_id BIGINT UNSIGNED,
     IN in_title VARCHAR(100),
@@ -10,32 +11,31 @@ CREATE PROCEDURE update_program_assessment (
     IN in_questions JSON
 )
 BEGIN
-    -- Variable to track how many questions were inserted
     DECLARE questions_added INT DEFAULT 0;
     DECLARE custom_error VARCHAR(255);
-     DECLARE error_message VARCHAR(255);
-    -- Error handler for rollback and exception
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-BEGIN
-	ROLLBACK;
-    GET DIAGNOSTICS CONDITION 1
-    error_message= MESSAGE_TEXT;
-    SET custom_error = COALESCE(custom_error,error_message);
-    SIGNAL SQLSTATE '45000'
-    
-        SET MESSAGE_TEXT = custom_error;
-END;
+    DECLARE error_message VARCHAR(255);
 
-    -- Start a transaction to ensure atomicity
+    -- Error handler to rollback and raise a custom error
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        GET DIAGNOSTICS CONDITION 1 error_message = MESSAGE_TEXT;
+        SET custom_error = COALESCE(custom_error, error_message);
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = custom_error;
+    END;
+
     START TRANSACTION;
--- check if assessment exists
-  IF NOT EXISTS (SELECT 1
-  FROM dt_learning_assessments
-  WHERE tid =  in_assessment_id)THEN
-    SET custom_error = 'Assessment not found!';
-    SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT=custom_error;
-  END IF;
-    -- Step 1: Update assessment information in dt_learning_assessments
+
+    -- Validate that the assessment exists
+    IF NOT EXISTS (
+        SELECT 1 FROM dt_learning_assessments WHERE tid = in_assessment_id
+    ) THEN
+        SET custom_error = 'Assessment not found!';
+        SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT = custom_error;
+    END IF;
+
+    -- Update basic details of the assessment
     UPDATE dt_learning_assessments
     SET
         title = in_title,
@@ -44,11 +44,11 @@ END;
         passing_score = in_passing_score
     WHERE tid = in_assessment_id;
 
-    -- Step 2: Delete all existing questions related to the given assessment
+    -- Remove existing questions for this assessment
     DELETE FROM dt_assessment_questions
     WHERE assessment_tid = in_assessment_id;
 
-    -- Step 3: Insert new questions from the JSON array if provided
+    -- Insert new questions if provided
     IF in_questions IS NOT NULL AND JSON_LENGTH(in_questions) > 0 THEN
         INSERT INTO dt_assessment_questions (
             assessment_tid,
@@ -64,7 +64,7 @@ END;
             options,
             correct_option,
             IFNULL(score, 1),
-            sequence_number  -- Assigns sequential number to each question
+            sequence_number  
         FROM JSON_TABLE (
             in_questions,
             '$[*]' COLUMNS (
@@ -76,14 +76,12 @@ END;
             )
         ) AS q;
 
-        -- Count how many rows were inserted
         SET questions_added = ROW_COUNT();
     END IF;
 
-    -- Step 4: Commit all changes
     COMMIT;
 
-    -- Step 5: Return a structured JSON response with assessment ID and question count
+    -- Return a structured response
     SELECT JSON_OBJECT(
         'assessment_id', in_assessment_id,
         'updated_question_count', questions_added
@@ -91,4 +89,3 @@ END;
 END;
 //
 DELIMITER ;
-
